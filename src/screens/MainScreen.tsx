@@ -231,7 +231,7 @@ export default function MainScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ImageBackground
-        source={{ uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop' }}
+        source={require('../../assets/Main.png')}
         style={styles.backgroundImage}
       >
         <SafeAreaView style={styles.safeArea}>

@@ -12,12 +12,15 @@ export default function BottomCard({ children, style }: BottomCardProps) {
 }
 
 const styles = StyleSheet.create({
-  card: {
+ card: {
     backgroundColor: colors.background,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    padding: spacing.l,
-    width: '100%',
+    borderRadius: 40,
+    paddingVertical: 17,
+    marginHorizontal: 24,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignSelf: 'center',   
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
