@@ -1,36 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import SplashScreen from './src/screens/SplashScreen';
-import MainScreen from './src/screens/MainScreen';
-import { useFonts, PlayfairDisplay_700Bold_Italic } from '@expo-google-fonts/playfair-display';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import { View, ActivityIndicator } from 'react-native';
-
-const Stack = createNativeStackNavigator();
+import { AppProvider } from './src/context/AppContext';
+import RootNavigator from './src/navigation/RootNavigator';
+import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+import { PlayfairDisplay_400Regular, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 
 export default function App() {
-  let [fontsLoaded] = useFonts({
-    PlayfairDisplay_700Bold_Italic,
+  const [fontsLoaded] = useFonts({
     Inter_400Regular,
-    Inter_500Medium,
     Inter_600SemiBold,
+    Inter_700Bold,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
   });
 
   if (!fontsLoaded) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return null;
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Main" component={MainScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <AppProvider>
+        <NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+      </AppProvider>
+      <StatusBar style="auto" />
+    </SafeAreaProvider>
   );
 }
