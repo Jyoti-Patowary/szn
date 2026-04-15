@@ -86,7 +86,7 @@ export default function MainScreen() {
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry={!showPassword ? true : false}
+            secureTextEntry={Boolean(!showPassword)}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
              <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textLight} />
@@ -151,7 +151,7 @@ export default function MainScreen() {
             placeholder="Enter your password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry={!showPassword ? true : false}
+            secureTextEntry={Boolean(!showPassword)}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
              <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textLight} />
@@ -167,7 +167,7 @@ export default function MainScreen() {
             placeholder="Enter your password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry={!showConfirmPassword ? true : false}
+            secureTextEntry={Boolean(!showConfirmPassword)}
           />
           <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
              <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textLight} />
