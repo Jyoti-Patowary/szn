@@ -1,102 +1,46 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-type Season = 'Spring' | 'Summer' | 'Winter';
-
+// 1. Define the types for your context
 interface AppContextType {
-  season: Season;
-  setSeason: (season: Season) => void;
   isLocked: boolean;
+  setIsLocked: (value: boolean) => void;
   timeLeft: number;
-  unlockApp: () => void;
+  setTimeLeft: (value: number) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const DEMO_DURATION = 30 * 60; // 30 minutes in seconds
-const ASYNC_STORAGE_START_TIME_KEY = '@demo_start_time';
-const ASYNC_STORAGE_UNLOCKED_KEY = '@app_unlocked';
-
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [season, setSeason] = useState<Season>('Spring');
   const [isLocked, setIsLocked] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(DEMO_DURATION);
+  
+  // 2. Set the initial time to 60 seconds (1 minute) for testing
+  const [timeLeft, setTimeLeft] = useState(60);
 
+  // 3. The Countdown Engine
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    // If the time hits 0, stop running the timer!
+    if (timeLeft <= 0) return;
 
-    const checkTimer = async () => {
-      try {
-        const unlockedStatus = await AsyncStorage.getItem(ASYNC_STORAGE_UNLOCKED_KEY);
-        if (unlockedStatus === 'true') {
-          setIsLocked(false);
-          return;
-        }
+    // Create an interval that runs every 1000ms (1 second)
+    const timerId = setInterval(() => {
+      setTimeLeft((prevTime) => prevTime - 1);
+    }, 1000);
 
-        const storedStartTime = await AsyncStorage.getItem(ASYNC_STORAGE_START_TIME_KEY);
-        let startTime = storedStartTime ? parseInt(storedStartTime, 10) : null;
-
-        if (!startTime) {
-          startTime = Date.now();
-          await AsyncStorage.setItem(ASYNC_STORAGE_START_TIME_KEY, startTime.toString());
-        }
-
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - startTime) / 1000);
-        const remainingSeconds = DEMO_DURATION - elapsedSeconds;
-
-        if (remainingSeconds <= 0) {
-          setTimeLeft(0);
-          setIsLocked(true);
-        } else {
-          setTimeLeft(remainingSeconds);
-          setIsLocked(false);
-
-          interval = setInterval(async () => {
-             const now = Date.now();
-             const updatedElapsed = Math.floor((now - startTime!) / 1000);
-             const updatedRemaining = DEMO_DURATION - updatedElapsed;
-
-             if (updatedRemaining <= 0) {
-                 setTimeLeft(0);
-                 setIsLocked(true);
-                 clearInterval(interval);
-             } else {
-                 setTimeLeft(updatedRemaining);
-             }
-          }, 1000);
-        }
-      } catch (e) {
-        console.error('Error checking timer in AsyncStorage', e);
-      }
-    };
-
-    checkTimer();
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, []);
-
-  const unlockApp = async () => {
-    try {
-      await AsyncStorage.setItem(ASYNC_STORAGE_UNLOCKED_KEY, 'true');
-      setIsLocked(false);
-    } catch (e) {
-      console.error('Error saving unlock state', e);
-    }
-  };
+    // Cleanup the interval if the component unmounts
+    return () => clearInterval(timerId);
+  }, [timeLeft]); // This re-runs the check every time the number changes
 
   return (
-    <AppContext.Provider value={{ season, setSeason, isLocked, timeLeft, unlockApp }}>
+    <AppContext.Provider value={{ isLocked, setIsLocked, timeLeft, setTimeLeft }}>
       {children}
     </AppContext.Provider>
   );
 };
 
+// Custom hook to use the context easily
 export const useAppContext = () => {
   const context = useContext(AppContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAppContext must be used within an AppProvider');
   }
   return context;
