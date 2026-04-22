@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 1. Define the types for your context
 interface AppContextType {
   isLocked: boolean;
   setIsLocked: (value: boolean) => void;
@@ -12,23 +12,58 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isLocked, setIsLocked] = useState(false);
-  
-  // 2. Set the initial time to 60 seconds (1 minute) for testing
   const [timeLeft, setTimeLeft] = useState(60);
+  const [isCheckingTrial, setIsCheckingTrial] = useState(true);
 
-  // 3. The Countdown Engine
   useEffect(() => {
-    // If the time hits 0, stop running the timer!
-    if (timeLeft <= 0) return;
+    const checkTrialStatus = async () => {
+      try {
+        // FIRST: Check if they are a paying subscriber
+        const isSubscribed = await AsyncStorage.getItem('@is_subscribed');
+        
+        if (isSubscribed === 'true') {
+          setTimeLeft(0);
+          setIsLocked(false); // Premium user! Make sure it stays unlocked
+          return; // Stop checking, we don't care about trial status
+        }
 
-    // Create an interval that runs every 1000ms (1 second)
+        // SECOND: If not subscribed, check if their free trial ended previously
+        const hasFinishedTrial = await AsyncStorage.getItem('@trial_finished');
+        if (hasFinishedTrial === 'true') {
+          setTimeLeft(0);
+          setIsLocked(true); // Lock them out
+        }
+      } catch (error) {
+        console.error("Error reading trial status", error);
+      } finally {
+        setIsCheckingTrial(false);
+      }
+    };
+
+    checkTrialStatus();
+  }, []);
+
+  useEffect(() => {
+    // If checking storage, or if time is already 0, stop running the timer!
+    if (isCheckingTrial || timeLeft <= 0) return;
+
     const timerId = setInterval(() => {
-      setTimeLeft((prevTime) => prevTime - 1);
+      setTimeLeft((prevTime) => {
+        const newTime = prevTime - 1;
+        
+        if (newTime <= 0) {
+          clearInterval(timerId);
+          AsyncStorage.setItem('@trial_finished', 'true');
+          setIsLocked(true); 
+          return 0;
+        }
+        
+        return newTime;
+      });
     }, 1000);
 
-    // Cleanup the interval if the component unmounts
     return () => clearInterval(timerId);
-  }, [timeLeft]); // This re-runs the check every time the number changes
+  }, [isCheckingTrial, timeLeft]);
 
   return (
     <AppContext.Provider value={{ isLocked, setIsLocked, timeLeft, setTimeLeft }}>
@@ -37,7 +72,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Custom hook to use the context easily
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (context === undefined) {

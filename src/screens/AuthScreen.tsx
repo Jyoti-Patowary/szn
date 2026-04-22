@@ -9,8 +9,12 @@ import { colors, spacing } from '../theme/colors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image, Alert } from 'react-native';
 import { supabase } from '../lib/supabase';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
 type AuthState = 'welcome_options' | 'sign_in' | 'sign_up' | 'forgot_password';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function AuthScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -26,48 +30,160 @@ export default function AuthScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmError, setConfirmError] = useState('');
+
+  const isValidEmail = (text: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(text);
+  };
+
+  const clearErrors = () => {
+    setNameError('');
+    setEmailError('');
+    setPasswordError('');
+    setConfirmError('');
+  };
+
   // --- SUPABASE AUTH FUNCTIONS ---
   async function signInWithEmail() {
+    clearErrors();
+    let isValid = true;
+
+    if (!isValidEmail(email)) {
+      setEmailError('Please enter a valid email address.');
+      isValid = false;
+    }
+    if (!password) {
+      setPasswordError('Password is required.');
+      isValid = false;
+    }
+
+    if (!isValid) return; 
+
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
-      email: email,
+      email: email.trim(),
       password: password,
     });
 
     if (error) {
       Alert.alert('Sign In Failed', error.message);
-    } else {
-      navigation.replace('Main');
-    }
+    } 
     setLoading(false);
   }
 
-  async function signUpWithEmail() {
+ async function signUpWithEmail() {
+
+    clearErrors();
+    let isValid = true;
+
+    if (!fullName.trim()) {
+      setNameError('Full name is required.');
+      isValid = false;
+    }
+    if (!isValidEmail(email)) {
+      setEmailError('Please enter a valid email address.');
+      isValid = false;
+    }
+    if (password.length < 8) {
+      setPasswordError('Password must be at least 8 characters long.');
+      isValid = false;
+    }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match!');
+      setConfirmError('Passwords do not match.');
+      isValid = false;
+    }
+
+    if (!isValid) return; 
+
+    setLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password: password,
+        options: {
+          data: {
+            full_name: fullName.trim(), 
+          }
+        }
+      });
+
+      if (error) {
+        Alert.alert('Sign Up Failed', error.message);
+        
+      } else if (!data.session) {
+        Alert.alert(
+          'Success!', 
+          'Please check your email inbox to verify your account.'
+        );
+        setAuthState('sign_in'); 
+      } 
+    } catch (err: any) {
+      Alert.alert('An unexpected error occurred', err.message);
+    } finally {
+      setLoading(false); 
+    }
+  }
+
+  async function signInWithSocial(provider: 'google' | 'apple') {
+    setLoading(true);
+    try {
+      const redirectUrl = Linking.createURL('/');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+      }
+    } catch (error: any) {
+      Alert.alert(`${provider === 'google' ? 'Google' : 'Apple'} Sign In Failed`, error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    clearErrors();
+    
+    if (!isValidEmail(email)) {
+      setEmailError('Please enter a valid email address.');
       return;
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-      options: {
-        data: {
-          full_name: fullName, 
-        }
-      }
-    });
+    try {
+      const redirectUrl = Linking.createURL('/reset-password');
 
-    if (error) {
-      Alert.alert('Sign Up Failed', error.message);
-    } else if (data.session) {
-      navigation.replace('Main');
-    } else {
-      Alert.alert('Success!', 'Please check your email to verify your account.');
-      setAuthState('sign_in');
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) throw error;
+
+      Alert.alert(
+        'Check your inbox', 
+        'We have sent you an email with a link to reset your password.'
+      );
+      
+      setAuthState('sign_in'); 
+      
+    } catch (error: any) {
+      Alert.alert('Reset Failed', error.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const renderWelcomeOptions = () => (
@@ -75,12 +191,14 @@ export default function AuthScreen() {
       <Text style={styles.cardTitle}>Welcome Back</Text>
       <Text style={styles.cardSubtitle}>Discover the colors, styles, and combinations that truly suits you.</Text>
 
-      <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#000' }]}>
+      <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#000' }]} onPress={() => signInWithSocial('apple')}
+        disabled={loading}> 
         <Ionicons name="logo-apple" size={23} color="#FFF" />
         <Text style={[styles.socialButtonText, { color: '#FFF' }]}>Continue with Apple</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#FFF' }]}>
+      <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#FFF' }]} onPress={() => signInWithSocial('google')}
+        disabled={loading}> 
         <Image 
           source={require('../../assets/Google-Logo.png')} 
           style={styles.socialImage} 
@@ -182,9 +300,10 @@ export default function AuthScreen() {
             style={styles.input}
             placeholder="Enter your email address"
             value={fullName}
-            onChangeText={setFullName}
+            onChangeText={(text) => { setFullName(text); setNameError(''); }}
           />
         </View>
+        {nameError ? <Text style={styles.errorText}>{nameError}</Text> : null}
       </View>
 
       <View style={styles.inputContainer}>
@@ -194,12 +313,13 @@ export default function AuthScreen() {
             style={styles.input}
             placeholder="Enter your email address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => { setEmail(text); setEmailError(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
           <Ionicons name="mail-outline" size={20} color={colors.textLight} />
         </View>
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
       </View>
 
       <View style={styles.inputContainer}>
@@ -209,13 +329,14 @@ export default function AuthScreen() {
             style={styles.input}
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
-            secureTextEntry={Boolean(!showPassword)}
+            onChangeText={(text) => { setPassword(text); setPasswordError(''); }}
+            secureTextEntry={!showPassword}
           />
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
              <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
+        {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
       </View>
 
       <View style={styles.inputContainer}>
@@ -225,13 +346,14 @@ export default function AuthScreen() {
             style={styles.input}
             placeholder="Enter your password"
             value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry={Boolean(!showConfirmPassword)}
+            onChangeText={(text) => { setConfirmPassword(text); setConfirmError(''); }}
+            secureTextEntry={!showConfirmPassword}
           />
           <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
              <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
+        {confirmError ? <Text style={styles.errorText}>{confirmError}</Text> : null}
       </View>
 
       <TouchableOpacity onPress={() => setAuthState('forgot_password')} style={{ alignItems: 'flex-end', marginBottom: spacing.l }}>
@@ -263,21 +385,23 @@ export default function AuthScreen() {
             style={styles.input}
             placeholder="Enter your email address"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(text) => { setEmail(text); setEmailError(''); }}
             keyboardType="email-address"
             autoCapitalize="none"
           />
           <Ionicons name="mail-outline" size={20} color={colors.textLight} />
         </View>
+        {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
       </View>
 
-      <TouchableOpacity style={[styles.primaryButton, { marginTop: spacing.l }]}>
-        <Text style={styles.primaryButtonText}>Submit</Text>
+      <TouchableOpacity style={[styles.primaryButton, { marginTop: spacing.l }]} onPress={handleResetPassword}
+        disabled={loading}>
+        <Text style={styles.primaryButtonText}>{loading ? 'Sending...' : 'Submit'}</Text>
       </TouchableOpacity>
 
       <View style={[styles.footerTextContainer, { marginTop: spacing.l }]}>
         <Text style={styles.footerText}>Back to </Text>
-        <TouchableOpacity onPress={() => setAuthState('sign_in')}>
+        <TouchableOpacity onPress={() => { clearErrors(); setAuthState('sign_in'); }}>
            <Text style={styles.linkText}>Sign in</Text>
         </TouchableOpacity>
       </View>
@@ -487,5 +611,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     fontSize: 16,
     color: '#FFFFFF',
+  },
+  errorText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 12,
+    color: '#D32F2F',
+    marginTop: 4,
+    marginLeft: 4,
   },
 });
