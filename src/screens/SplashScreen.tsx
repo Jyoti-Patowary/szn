@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, Animated, Dimensions } from 'react-native';
-import { colors } from '../theme/colors';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -21,7 +21,20 @@ export default function SplashScreen({ navigation }: any) {
 
   useEffect(() => {
     const logoTimer = setTimeout(() => setShowSznLogo(true), 1200);
-    const navigationTimer = setTimeout(() => navigation.replace('Auth'), 3800); 
+    const navigationTimer = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          navigation.replace('Main');
+        } else {
+          navigation.replace('Auth');
+        }
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        navigation.replace('Auth');
+      }
+    }, 3800);
 
     return () => {
       clearTimeout(logoTimer);
@@ -83,8 +96,11 @@ export default function SplashScreen({ navigation }: any) {
           </View>
 
           <View style={styles.textColumn}>
-            <Text style={styles.textYour}>Your</Text>
-            <Text style={styles.textSZN}>SZN</Text>
+            <Image 
+              source={require('../../assets/splash_logo_1.jpeg')} 
+              resizeMode="contain"
+              style={{ width: width * 0.90, height: 240, top: 20, marginBottom: -20 }} 
+            />
           </View>
 
         </View>
@@ -96,7 +112,7 @@ export default function SplashScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3EBE1', 
+    // backgroundColor: '#ffffff', 
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -104,7 +120,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: colors.accent,
+    // backgroundColor: colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden', 
@@ -119,14 +135,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stackedIconsColumn: {
+    position: 'absolute', 
+    left: 20,          
+    zIndex: 10,
     flexDirection: 'column',
     justifyContent: 'space-between',
     marginRight: 15,
     height: 160, 
   },
   miniIcon: {
-    width: 60,
-    height: 60,
+    width: 50,
+    height: 50,
     marginBottom: 10,
   },
   textColumn: {

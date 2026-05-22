@@ -4,14 +4,13 @@ import HomeScreen from '../screens/HomeScreen';
 import CatalogueScreen from '../screens/CatalogueScreen';
 import LooksScreen from '../screens/LooksScreen';
 import WishlistScreen from '../screens/WishlistScreen';
-import BottomNav from '../components/BottomNav'; // Import your custom bar!
+import BottomNav from '../components/BottomNav'; 
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
   return (
     <Tab.Navigator
-      // This line injects your floating component as the official tab bar!
       tabBar={(props) => <BottomNav {...props} />} 
       screenOptions={{ headerShown: false }}
     >

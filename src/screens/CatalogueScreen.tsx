@@ -1,111 +1,288 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, SafeAreaView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import { 
+  View, Text, StyleSheet, FlatList, Image, SafeAreaView, 
+  TouchableOpacity, TextInput, ScrollView, ActivityIndicator 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
+import { useNavigation } from '@react-navigation/native';
 
-const DUMMY_PRODUCTS = [
-  { id: '1', title: 'Elegant Red Gown', price: '$120.00', image: 'https://images.unsplash.com/photo-1566162200408-a25e1df1e1fe?q=80&w=1974&auto=format&fit=crop' },
-  { id: '2', title: 'Summer Floral Dress', price: '$85.00', image: 'https://images.unsplash.com/photo-1572804013309-82a89b43af17?q=80&w=1974&auto=format&fit=crop' },
-  { id: '3', title: 'Classic Blue Maxi', price: '$110.00', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=1983&auto=format&fit=crop' },
-  { id: '4', title: 'Casual White Dress', price: '$65.00', image: 'https://images.unsplash.com/photo-1515347619362-75fe20625345?q=80&w=2070&auto=format&fit=crop' },
-  { id: '5', title: 'Evening Black Dress', price: '$140.00', image: 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?q=80&w=1974&auto=format&fit=crop' },
-  { id: '6', title: 'Boho Chic Skirt', price: '$55.00', image: 'https://images.unsplash.com/photo-1583496661160-c588c25a9002?q=80&w=1974&auto=format&fit=crop' },
+
+const SEASONS = [
+  { 
+    id: 'winter', 
+    label: 'Winter', 
+    image: require('../../assets/winter-icon.png'),
+    bgColor: '#4A5568' 
+  },
+  { 
+    id: 'autumn', 
+    label: 'Autumn', 
+    image: require('../../assets/autumn-icon.png'), 
+    bgColor: '#C28E6B' 
+  },
+  { 
+    id: 'summer', 
+    label: 'Summer', 
+    image: require('../../assets/summer-icon.png'), 
+    bgColor: '#63B3ED' 
+  },
+  { 
+    id: 'spring', 
+    label: 'Spring', 
+    image: require('../../assets/spring-icon.png'), 
+    bgColor: '#B794F4' 
+  },
 ];
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
+
 export default function CatalogueScreen() {
-  const renderItem = ({ item }: { item: typeof DUMMY_PRODUCTS[0] }) => (
-    <View style={styles.productCard}>
-      <Image source={{ uri: item.image }} style={styles.productImage} />
-      <TouchableOpacity style={styles.heartButton}>
-        <Ionicons name="heart-outline" size={20} color="#A0785A" />
-      </TouchableOpacity>
-      <View style={styles.productInfo}>
-        <Text style={styles.productTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.productPrice}>{item.price}</Text>
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const [activeSeason, setActiveSeason] = useState('autumn');
+  const [activeCategory, setActiveCategory] = useState('ALL'); 
+  
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>(['ALL']);
+  const [groupedProducts, setGroupedProducts] = useState<any[]>([]);
+
+ 
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data, error } = await supabase.from('catalog_products').select('categories');
+        if (error) throw error;
+
+        if (data) {
+          const uniqueCategories = new Set<string>();
+          data.forEach((row) => {
+            if (row.categories && Array.isArray(row.categories)) {
+              row.categories.forEach((cat: string) => {
+                if (cat) uniqueCategories.add(cat.toUpperCase());
+              });
+            }
+          });
+          setDynamicCategories(['ALL', ...Array.from(uniqueCategories).sort()]);
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
+
+
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('catalog_products')
+          .select('id, name, product_type, listing_image_url, image_urls, categories, seasons')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+          const filtered = data.filter((item) => {
+             const categoryStr = JSON.stringify(item.categories || []).toLowerCase();
+             const hasCategory = activeCategory === 'ALL' || categoryStr.includes(activeCategory.toLowerCase());
+             
+             const hasSeason = item.seasons && item.seasons.some((s: string) => 
+               s.toLowerCase() === activeSeason.toLowerCase()
+             );
+             
+             const hasSearch = debouncedSearch === '' || 
+                               (item.name && item.name.toLowerCase().includes(debouncedSearch.toLowerCase())) ||
+                               (item.product_type && item.product_type.toLowerCase().includes(debouncedSearch.toLowerCase()));
+
+             return hasCategory && hasSeason && hasSearch;
+          });
+
+          const groups: Record<string, any> = {};
+          filtered.forEach((item) => {
+            const type = item.product_type || 'Uncategorized';
+            
+            if (!groups[type]) {
+              let bestImage = item.listing_image_url;
+              if (!bestImage && item.image_urls && item.image_urls.length > 0) {
+                bestImage = item.image_urls[0];
+              }
+
+              groups[type] = {
+                id: type,
+                title: type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                count: 0,
+                image: bestImage || FALLBACK_IMAGE 
+              };
+            }
+            groups[type].count += 1;
+          });
+
+          setGroupedProducts(Object.values(groups));
+        }
+      } catch (err) {
+        console.error("Error fetching catalog:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCatalog();
+  }, [activeSeason, activeCategory, debouncedSearch]);
+
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Text style={styles.mainTitle}>Catalogue</Text>
+      <Text style={styles.subTitle}>Discover curated fashion pieces</Text>
+
+      <View style={styles.seasonsRow}>
+        {SEASONS.map((season) => {
+          const isActive = activeSeason === season.id;
+          return (
+            <TouchableOpacity 
+              key={season.id} 
+              style={styles.seasonItem}
+              onPress={() => setActiveSeason(season.id)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.seasonIconOuterRing, isActive && styles.seasonIconOuterRingActive]}>
+                <View style={[styles.seasonIconInner, { backgroundColor: season.bgColor }]}>
+                  <Image 
+                    source={season.image} 
+                    style={{ width: 52, height: 52, resizeMode: 'contain' }} 
+                  />
+                </View>
+              </View>
+              <Text style={[styles.seasonLabel, isActive && styles.seasonLabelActive]}>
+                {season.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll} contentContainerStyle={styles.categoriesContainer}>
+        {dynamicCategories.map((category) => {
+          const isActive = activeCategory === category;
+          return (
+            <TouchableOpacity 
+              key={category} 
+              style={[styles.categoryPill, isActive && styles.categoryPillActive]}
+              onPress={() => setActiveCategory(category)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{category}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+
+      <View style={styles.searchContainer}>
+        <Ionicons name="search-outline" size={20} color="#888" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search dresses, skirts etc"
+          placeholderTextColor="#888"
+          value={searchInput}
+          onChangeText={setSearchInput} 
+          autoCorrect={false}
+        />
+      </View>
+
+      <Text style={styles.listTitle}>Product list</Text>
     </View>
   );
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Catalogue</Text>
+  const renderItem = ({ item }: { item: any }) => (
+    <TouchableOpacity style={styles.productRow} activeOpacity={0.7} onPress={() => navigation.navigate('ProductList', { 
+        type: item.id,
+        title: item.title 
+      })}>
+      <View style={styles.imageWrapper}>
+        <View style={styles.imageBackdrop} />
+        <Image source={{ uri: item.image }} style={styles.productImage} />
       </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.itemCount}>{item.count} ITEM{item.count !== 1 ? 'S' : ''}</Text>
+        <Text style={styles.productTitle}>{item.title}</Text>
+      </View>
+      <View style={styles.chevronButton}>
+        <Ionicons name="chevron-forward" size={20} color="#666" />
+      </View>
+    </TouchableOpacity>
+  );
+
+  return (
+    <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={DUMMY_PRODUCTS}
+        data={groupedProducts}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        numColumns={2}
-        contentContainerStyle={styles.listContent}
-        columnWrapperStyle={styles.row}
+       ListHeaderComponent={renderHeader()}
+        contentContainerStyle={styles.flatListContent}
+        showsVerticalScrollIndicator={false}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyContainer}>
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#B88A60" />
+            ) : (
+              <Text style={styles.emptyText}>No products found.</Text>
+            )}
+          </View>
+        )}
       />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F5F0',
-  },
-  header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAEAEA',
-  },
-  headerTitle: {
-    fontFamily: 'PlayfairDisplay_600SemiBold',
-    fontSize: 28,
-    color: '#333',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 120, // Extra padding for bottom nav
-  },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  productCard: {
-    width: '48%',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    position: 'relative',
-  },
-  productImage: {
-    width: '100%',
-    height: 200,
-  },
-  heartButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  productInfo: {
-    padding: 12,
-  },
-  productTitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 4,
-  },
-  productPrice: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 14,
-    color: '#A0785A',
-  },
+  safeArea: { flex: 1, backgroundColor: '#F6F4F0' },
+  flatListContent: { paddingBottom: 120 },
+  headerContainer: { paddingHorizontal: 20, paddingTop: 20 },
+  mainTitle: { fontSize: 24, fontWeight: '500', color: '#333333', marginBottom: 4 },
+  subTitle: { fontSize: 15, color: '#888888', marginBottom: 32 },
+  seasonsRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 1, marginBottom: 32 },
+  seasonItem: { alignItems: 'center' },
+  seasonIconOuterRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: 'transparent', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  seasonIconOuterRingActive: { borderColor: '#B88A60' },
+  seasonIconInner: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
+  seasonLabel: { fontSize: 14, color: '#666666' },
+  seasonLabelActive: { color: '#A67B5B', fontWeight: '600' },
+  categoriesScroll: { marginBottom: 24, marginHorizontal: -20 },
+  categoriesContainer: { paddingHorizontal: 20 },
+  categoryPill: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#CDBBAA', marginRight: 12 },
+  categoryPillActive: { backgroundColor: '#A67B5B', borderColor: '#A67B5B' },
+  categoryText: { fontSize: 12, color: '#CDBBAA', fontWeight: '500' },
+  categoryTextActive: { color: '#FFFFFF' },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E8E5E0', borderRadius: 14, paddingHorizontal: 16, height: 50, marginBottom: 32 },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, fontSize: 15, color: '#333' },
+  listTitle: { fontSize: 20, fontWeight: '500', color: '#333333', marginBottom: 16 },
+  productRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12 },
+  imageWrapper: { width: 80, height: 80, marginRight: 20, position: 'relative' },
+  imageBackdrop: { position: 'absolute', top: 4, left: 4, right: -4, bottom: -4, backgroundColor: '#DCD6CE', borderRadius: 16, transform: [{ rotate: '5deg' }] },
+  productImage: { width: '100%', height: '100%', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  productInfo: { flex: 1, justifyContent: 'center' },
+  itemCount: { fontSize: 11, color: '#A67B5B', fontWeight: '600', marginBottom: 4 },
+  productTitle: { fontSize: 16, color: '#333333', fontWeight: '500' },
+  chevronButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: '#E0DCD3', justifyContent: 'center', alignItems: 'center' },
+  separator: { height: 1, backgroundColor: '#EBE5DE', marginHorizontal: 20 },
+  emptyContainer: { padding: 40, alignItems: 'center' },
+  emptyText: { color: '#888', fontSize: 15, fontStyle: 'italic' }
 });

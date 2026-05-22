@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, StyleProp, ViewStyle } from 'react-native';
-import { colors, spacing } from '../theme/colors';
+
 
 interface BottomCardProps {
   children: React.ReactNode;
@@ -13,8 +13,10 @@ export default function BottomCard({ children, style }: BottomCardProps) {
 
 const styles = StyleSheet.create({
  card: {
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(241, 230, 219, 1)',
     borderRadius: 40,
+    borderColor: 'rgba(232, 229, 224, 1)',
+    borderWidth: 1,
     paddingVertical: 17,
     marginHorizontal: 15,
     display: 'flex',

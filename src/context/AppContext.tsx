@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../lib/supabase';
 
 interface AppContextType {
   isLocked: boolean;
@@ -15,24 +16,59 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isCheckingTrial, setIsCheckingTrial] = useState(true);
 
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
+        await AsyncStorage.removeItem('@trial_finished');
+        await AsyncStorage.removeItem('@is_subscribed');
+        setTimeLeft(60);
+        setIsLocked(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     const checkTrialStatus = async () => {
       try {
-        // FIRST: Check if they are a paying subscriber
-        const isSubscribed = await AsyncStorage.getItem('@is_subscribed');
+        const isSubscribedLocal = await AsyncStorage.getItem('@is_subscribed');
         
-        if (isSubscribed === 'true') {
+        if (isSubscribedLocal === 'true') {
           setTimeLeft(0);
-          setIsLocked(false); // Premium user! Make sure it stays unlocked
-          return; // Stop checking, we don't care about trial status
+          setIsLocked(false);
         }
 
-        // SECOND: If not subscribed, check if their free trial ended previously
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const { data: subData, error } = await supabase
+            .from('user_subscriptions')
+            .select('status, current_period_end')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (!error && subData) {
+            const isSubActive = subData.status === 'active' && new Date(subData.current_period_end) > new Date();
+            
+            if (isSubActive) {
+              await AsyncStorage.setItem('@is_subscribed', 'true');
+              setTimeLeft(0);
+              setIsLocked(false);
+              return; 
+            } else {
+              await AsyncStorage.removeItem('@is_subscribed');
+            }
+          }
+        }
+
         const hasFinishedTrial = await AsyncStorage.getItem('@trial_finished');
         if (hasFinishedTrial === 'true') {
           setTimeLeft(0);
-          setIsLocked(true); // Lock them out
+          setIsLocked(true); 
         }
+
       } catch (error) {
         console.error("Error reading trial status", error);
       } finally {
@@ -43,27 +79,25 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     checkTrialStatus();
   }, []);
 
+  // RUN THE TRIAL TIMER
   useEffect(() => {
-    // If checking storage, or if time is already 0, stop running the timer!
-    if (isCheckingTrial || timeLeft <= 0) return;
+    if (isCheckingTrial || isLocked || timeLeft === 0) return;
 
     const timerId = setInterval(() => {
       setTimeLeft((prevTime) => {
-        const newTime = prevTime - 1;
-        
-        if (newTime <= 0) {
+        if (prevTime <= 1) {
           clearInterval(timerId);
           AsyncStorage.setItem('@trial_finished', 'true');
           setIsLocked(true); 
           return 0;
         }
         
-        return newTime;
+        return prevTime - 1;
       });
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isCheckingTrial, timeLeft]);
+  }, [isCheckingTrial, isLocked, timeLeft]);
 
   return (
     <AppContext.Provider value={{ isLocked, setIsLocked, timeLeft, setTimeLeft }}>

@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const ICON_SIZE = 22; 
 
 export default function BottomNav({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -25,22 +27,47 @@ export default function BottomNav({ state, navigation }: BottomTabBarProps) {
             }
           };
 
-          // Determine Icons and Labels based on the route name
-          let iconName: any = 'home';
+          let iconElement;
           let label = '';
 
+          const BASE_SIZE = 18; 
+          
+          const LOOKS_SIZE = 20;
+          const WISHLIST_SIZE = 22;
+
           if (route.name === 'Home') {
-            iconName = isFocused ? 'home' : 'home-outline';
             label = 'Home';
+            iconElement = (
+              <Image 
+                source={isFocused ? require('../../assets/bottom_nav_icons/home_brown.png') : require('../../assets/bottom_nav_icons/home_white.png')} 
+                style={{ width: BASE_SIZE, height: BASE_SIZE, resizeMode: 'contain' }} 
+              />
+            );
           } else if (route.name === 'Catalogue') {
-            iconName = isFocused ? 'grid' : 'grid-outline';
-            label = 'Grid';
+            label = 'Catalogue';
+            iconElement = (
+              <Image 
+                source={isFocused ? require('../../assets/bottom_nav_icons/catalogue_brown.png') : require('../../assets/bottom_nav_icons/catalogue_white.png')} 
+                style={{ width: BASE_SIZE, height: BASE_SIZE, resizeMode: 'contain' }} 
+              />
+            );
           } else if (route.name === 'Looks') {
-            iconName = isFocused ? 'sparkles' : 'sparkles-outline';
-            label = 'Discover';
+            label = 'Looks';
+            iconElement = (
+              <Image 
+                source={isFocused ? require('../../assets/bottom_nav_icons/looks_brown.png') : require('../../assets/bottom_nav_icons/looks_white.png')} 
+                style={{ width: LOOKS_SIZE, height: LOOKS_SIZE, resizeMode: 'contain' }}
+              />
+            );
           } else if (route.name === 'Wishlist') {
-            iconName = isFocused ? 'heart' : 'heart-outline';
             label = 'Saved';
+            iconElement = (
+              <Ionicons 
+                name={isFocused ? 'heart' : 'heart-outline'} 
+                size={WISHLIST_SIZE} 
+                color={isFocused ? '#A67B5B' : '#FFF'} 
+              />
+            );  
           }
 
           return (
@@ -50,11 +77,7 @@ export default function BottomNav({ state, navigation }: BottomTabBarProps) {
               style={isFocused ? styles.navItemActive : styles.navItem}
               activeOpacity={0.8}
             >
-              <Ionicons 
-                name={iconName} 
-                size={isFocused ? 18 : 24} 
-                color={isFocused ? '#A67B5B' : '#FFF'} 
-              />
+              {iconElement}
               {isFocused && <Text style={styles.navTextActive}>{label}</Text>}
             </TouchableOpacity>
           );
@@ -67,7 +90,6 @@ export default function BottomNav({ state, navigation }: BottomTabBarProps) {
 const styles = StyleSheet.create({
   floatingNavContainer: {
     position: 'absolute',
-    // bottom: Platform.OS === 'ios' ? 30 : 20,
     left: 20,
     right: 20,
   },

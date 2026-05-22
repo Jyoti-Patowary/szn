@@ -8,12 +8,13 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 const { width } = Dimensions.get('window');
 
 // --- MOCK DATABASE ---
-// In a real app, you would fetch this from an API based on the categoryId
 const CATEGORY_DATA: Record<string, any> = {
   'autumn_accessories': {
     title: 'Autumn Accessories',
     subtitle: 'Elevated accessories to complete your autumn style.',
     filters: ['ALL', 'SUNGLASSES', 'CHAIN BELTS', 'STATEMENT EARRINGS'],
+    hideSearch: false,
+    hideFilters: false,
     products: [
       { id: '1', name: 'Gold Circle Chain Belt', price: '$32.99', image: 'https://images.unsplash.com/photo-1599643477874-cefb3eeb7428?q=80&w=400&auto=format&fit=crop', category: 'CHAIN BELTS' },
       { id: '2', name: 'Vegan Chain Belt', price: '$79.50', image: 'https://images.unsplash.com/photo-1628149462157-19cb9eafaf90?q=80&w=400&auto=format&fit=crop', category: 'CHAIN BELTS' },
@@ -25,9 +26,26 @@ const CATEGORY_DATA: Record<string, any> = {
     title: 'Summer Makeup',
     subtitle: 'Glowy, lightweight essentials for the heat.',
     filters: ['ALL', 'LIPS', 'FACE', 'EYES'],
+    hideSearch: false,
+    hideFilters: false,
     products: [
       { id: '5', name: 'Dewy Finish Setting Spray', price: '$24.00', image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=400&auto=format&fit=crop', category: 'FACE' },
-      // Add more items here...
+    ]
+  },
+  // 👇 ADDED: The Weekly Picks / Co-Ord Sets Category
+  'weekly_picks': {
+    title: 'CO-ORD Sets',
+    subtitle: 'Effortless matching sets styled for your season.',
+    filters: ['ALL'],
+    hideSearch: true,  // Tells the screen to hide the search bar
+    hideFilters: true, // Tells the screen to hide the horizontal filters
+    products: [
+      { id: 'w1', name: 'Sora Red Notch Set', price: '$72.99', image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
+      { id: 'w2', name: 'Sloane Tie Co-Ord Set', price: '$49.50', image: 'https://images.unsplash.com/photo-1550639524-a6f58345a278?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
+      { id: 'w3', name: 'Suzie Ribbed Chocolate...', price: '$82.00', image: 'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
+      { id: 'w4', name: 'Noah Brown Co-Ord Set', price: '$56.99', image: 'https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
+      { id: 'w5', name: 'Cupro Strapless Top Pant', price: '$52.00', image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
+      { id: 'w6', name: 'Oceana White Co-Ord Set', price: '$64.00', image: 'https://images.unsplash.com/photo-1434389672724-4fa0f4e38c35?q=80&w=400&auto=format&fit=crop', category: 'ALL' },
     ]
   }
 };
@@ -37,18 +55,14 @@ type CategoryScreenRouteProp = RouteProp<RootStackParamList, 'CategoryList'>;
 export default function CategoryListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   
-  // 1. Get the categoryId passed from the Home Screen
   const route = useRoute<CategoryScreenRouteProp>();
   const { categoryId } = route.params;
 
-  // 2. Load the specific data for that category
-  const data = CATEGORY_DATA[categoryId] || CATEGORY_DATA['autumn_accessories']; // Fallback just in case
+  const data = CATEGORY_DATA[categoryId] || CATEGORY_DATA['autumn_accessories']; 
 
-  // UI State
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 3. Filter the products based on the selected pill
   const filteredProducts = data.products.filter((item: any) => {
     if (activeFilter === 'ALL') return true;
     return item.category === activeFilter;
@@ -58,7 +72,6 @@ export default function CategoryListScreen() {
     <TouchableOpacity style={styles.productCard}>
       <View style={styles.imageContainer}>
         <Image source={{ uri: item.image }} style={styles.productImage} />
-        {/* Heart Icon Button */}
         <TouchableOpacity style={styles.heartButton}>
           <Ionicons name="heart-outline" size={18} color="#A67B5B" />
         </TouchableOpacity>
@@ -80,34 +93,38 @@ export default function CategoryListScreen() {
         </View>
       </View>
 
-      {/* --- FILTERS (Horizontal Scroll) --- */}
-      <View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {data.filters.map((filter: string) => (
-            <TouchableOpacity 
-              key={filter} 
-              style={[styles.filterPill, activeFilter === filter && styles.activeFilterPill]}
-              onPress={() => setActiveFilter(filter)}
-            >
-              <Text style={[styles.filterText, activeFilter === filter && styles.activeFilterText]}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      {/* --- CONDITIONALLY RENDER FILTERS --- */}
+      {!data.hideFilters && (
+        <View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+            {data.filters?.map((filter: string) => (
+              <TouchableOpacity 
+                key={filter} 
+                style={[styles.filterPill, activeFilter === filter && styles.activeFilterPill]}
+                onPress={() => setActiveFilter(filter)}
+              >
+                <Text style={[styles.filterText, activeFilter === filter && styles.activeFilterText]}>
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
-      {/* --- SEARCH BAR --- */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
-        <TextInput 
-          style={styles.searchInput}
-          placeholder="Search by"
-          placeholderTextColor="#888"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
-      </View>
+      {/* --- CONDITIONALLY RENDER SEARCH BAR --- */}
+      {!data.hideSearch && (
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#888" style={styles.searchIcon} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Search by"
+            placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+      )}
 
       {/* --- 2-COLUMN PRODUCT GRID --- */}
       <FlatList 
@@ -126,7 +143,7 @@ export default function CategoryListScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5EBE1', // Matching theme
+    backgroundColor: '#F5EBE1', 
   },
   header: {
     flexDirection: 'row',
@@ -142,7 +159,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontFamily: 'Inter_600SemiBold', // Replace with Playfair if desired!
+    fontFamily: 'Inter_600SemiBold', 
     fontSize: 24,
     color: '#333',
     marginBottom: 4,
@@ -165,7 +182,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   activeFilterPill: {
-    backgroundColor: '#A67B5B', // Brown active state
+    backgroundColor: '#A67B5B', 
     borderColor: '#A67B5B',
   },
   filterText: {
@@ -199,19 +216,19 @@ const styles = StyleSheet.create({
   },
   gridContainer: {
     paddingHorizontal: 16,
-    paddingBottom: 100, // Room for bottom nav/scrolling
+    paddingBottom: 100, 
   },
   rowWrapper: {
     justifyContent: 'space-between',
     marginBottom: 20,
   },
   productCard: {
-    width: (width - 48) / 2, // Half width minus padding
+    width: (width - 48) / 2, 
   },
   imageContainer: {
     backgroundColor: '#EBEBEB',
     borderRadius: 16,
-    height: 180,
+    height: 200, // Slightly taller to match the portrait aspect ratio of your screenshot!
     marginBottom: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -226,7 +243,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     right: 10,
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -240,13 +257,13 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 14,
+    fontSize: 13,
     color: '#333',
     marginBottom: 4,
   },
   productPrice: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 14,
+    fontSize: 13,
     color: '#666',
   },
 });

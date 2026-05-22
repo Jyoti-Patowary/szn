@@ -1,48 +1,160 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, FlatList, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, 
+  FlatList, Image, ActivityIndicator, Alert 
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/RootNavigator';
 
-const DUMMY_CATALOGUE_ITEMS = [
-  { id: '1', title: 'Solid Sleeveless Maxi', price: '$24.00', image: 'https://images.unsplash.com/photo-1566162200408-a25e1df1e1fe?q=80&w=1974&auto=format&fit=crop' },
-  { id: '2', title: 'Solid Sleeveless Maxi', price: '$24.00', image: 'https://images.unsplash.com/photo-1572804013309-82a89b43af17?q=80&w=1974&auto=format&fit=crop' },
-  { id: '3', title: 'Solid Sleeveless Maxi', price: '$24.00', image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?q=80&w=1983&auto=format&fit=crop' },
-  { id: '4', title: 'Solid Sleeveless Maxi', price: '$24.00', image: 'https://images.unsplash.com/photo-1515347619362-75fe20625345?q=80&w=2070&auto=format&fit=crop' },
-];
-
-const DUMMY_SAVED_LOOKS = [
-  { id: '1', title: 'Classic Feminine Look', items: 4, image: 'https://images.unsplash.com/photo-1434389678369-184bf388ef09?q=80&w=1964&auto=format&fit=crop' },
-  { id: '2', title: 'Vacation Day Outfit', items: 5, image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=2080&auto=format&fit=crop' },
-  { id: '3', title: 'Coastal Summer Style', items: 4, image: 'https://images.unsplash.com/photo-1485230895905-31f0a1b4d8e5?q=80&w=2070&auto=format&fit=crop' },
-  { id: '4', title: 'Cozy Fall Style', items: 4, image: 'https://images.unsplash.com/photo-1445205170230-053b83016050?q=80&w=2071&auto=format&fit=crop' },
-];
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
 
 export default function WishlistScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTab, setActiveTab] = useState<'Catalogue' | 'Saved Looks'>('Catalogue');
+  
+  const [savedProducts, setSavedProducts] = useState<any[]>([]);
+  const [savedLooks, setSavedLooks] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const renderCatalogueItem = ({ item }: { item: typeof DUMMY_CATALOGUE_ITEMS[0] }) => (
-    <View style={styles.card}>
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      setIsLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        if (activeTab === 'Catalogue') {
+          const { data, error } = await supabase
+            .from('user_saved_products') 
+            .select(`
+              id,
+              catalog_products (
+                id,
+                name,
+                price,
+                image_urls
+              )
+            `)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+
+          if (data) {
+            const formatted = data.map((item: any) => {
+              const prod = item.catalog_products; 
+              
+              // Safely grab the first image available
+              const bestImage = (prod.image_urls && prod.image_urls[0]) || FALLBACK_IMAGE;
+              
+              return {
+                saveId: item.id, 
+                productId: prod.id,
+                title: prod.name || 'Untitled Product',
+                price: prod.price || '$0.00',
+                image: bestImage
+              };
+            });
+            setSavedProducts(formatted);
+          }
+        } else {
+          const { data, error } = await supabase
+            .from('user_saved_looks')
+            .select(`
+              id,
+              catalog_looks (
+                id,
+                name,
+                render_image_url, 
+                catalog_look_items ( id )
+              )
+            `)
+            .eq('user_id', user.id);
+
+          if (error) throw error;
+
+          if (data) {
+            const formatted = data.map((item: any) => {
+              const look = item.catalog_looks;
+              return {
+                saveId: item.id,
+                lookId: look.id,
+                title: look.name || 'Curated Look',
+                itemsCount: look.catalog_look_items ? look.catalog_look_items.length : 0,
+                image: look.render_image_url || FALLBACK_IMAGE 
+              };
+            });
+            setSavedLooks(formatted);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching wishlist:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, [activeTab]);
+
+  const handleRemove = async (saveId: string, type: 'product' | 'look') => {
+    try {
+      const tableName = type === 'product' ? 'user_saved_products' : 'user_saved_looks';
+      const { error } = await supabase.from(tableName).delete().eq('id', saveId);
+      
+      if (error) throw error;
+
+      if (type === 'product') {
+        setSavedProducts(prev => prev.filter(p => p.saveId !== saveId));
+      } else {
+        setSavedLooks(prev => prev.filter(l => l.saveId !== saveId));
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Could not remove item from wishlist.');
+      console.error(err);
+    }
+  };
+
+  const renderCatalogueItem = ({ item }: { item: any }) => (
+    <TouchableOpacity 
+      style={styles.card} 
+      activeOpacity={0.8}
+      onPress={() => navigation.navigate('ProductDetail', { product: item })}
+    >
       <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <TouchableOpacity style={styles.heartButton}>
+      <TouchableOpacity 
+        style={styles.heartButton}
+        onPress={() => handleRemove(item.saveId, 'product')}
+      >
         <Ionicons name="heart" size={20} color="#A0785A" />
       </TouchableOpacity>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.cardPrice}>{item.price}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
-  const renderSavedLook = ({ item }: { item: typeof DUMMY_SAVED_LOOKS[0] }) => (
-    <View style={styles.card}>
+  const renderSavedLook = ({ item }: { item: any }) => (
+    <TouchableOpacity 
+      style={styles.card}
+      activeOpacity={0.8}
+    >
       <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <TouchableOpacity style={styles.heartButton}>
+      <TouchableOpacity 
+        style={styles.heartButton}
+        onPress={() => handleRemove(item.saveId, 'look')}
+      >
         <Ionicons name="heart" size={20} color="#A0785A" />
       </TouchableOpacity>
       <View style={styles.cardInfo}>
         <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.itemCount}>{item.items} Items</Text>
+        <Text style={styles.itemCount}>{item.itemsCount} Items</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -71,25 +183,41 @@ export default function WishlistScreen() {
         </TouchableOpacity>
       </View>
 
-      {activeTab === 'Catalogue' ? (
+      {isLoading ? (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#A0785A" />
+        </View>
+      ) : activeTab === 'Catalogue' ? (
         <FlatList
           key="catalogue-list"
-          data={DUMMY_CATALOGUE_ITEMS}
+          data={savedProducts}
           renderItem={renderCatalogueItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.saveId}
           numColumns={2}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={() => (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>No saved products yet.</Text>
+            </View>
+          )}
         />
       ) : (
         <FlatList
           key="saved-looks-list"
-          data={DUMMY_SAVED_LOOKS}
+          data={savedLooks}
           renderItem={renderSavedLook}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.saveId}
           numColumns={2}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.row}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={() => (
+            <View style={styles.centerContainer}>
+              <Text style={styles.emptyText}>No saved looks yet.</Text>
+            </View>
+          )}
         />
       )}
     </SafeAreaView>
@@ -101,11 +229,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F5F0',
   },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 60,
+  },
+  emptyText: {
+    fontFamily: 'Inter_400Regular',
+    fontSize: 15,
+    color: '#888',
+  },
   header: {
     padding: 20,
   },
   headerTitle: {
-    fontFamily: 'PlayfairDisplay_600SemiBold',
+    fontFamily: 'Inter_400Regular',
     fontSize: 32,
     color: '#333',
     marginBottom: 4,
@@ -146,7 +285,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 20,
-    paddingBottom: 120, // Space for bottom nav
+    paddingBottom: 120,
   },
   row: {
     justifyContent: 'space-between',
@@ -181,6 +320,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+    zIndex: 10,
   },
   cardInfo: {
     padding: 12,

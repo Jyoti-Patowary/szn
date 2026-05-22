@@ -7,11 +7,11 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 
 // Mock data matching your design
 const SEASONS = [
-  { id: 'spring', title: 'Spring', image: 'https://images.unsplash.com/photo-1490750967868-88cb44cb2754?q=80&w=400&auto=format&fit=crop' },
-  { id: 'summer', title: 'Summer', image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=400&auto=format&fit=crop' },
-  { id: 'autumn', title: 'Autumn', image: 'https://images.unsplash.com/photo-1477414348463-c0eb7f1359b6?q=80&w=400&auto=format&fit=crop' },
-  { id: 'winter', title: 'Winter', image: 'https://images.unsplash.com/photo-1445543949571-ffc3e0e2f55e?q=80&w=400&auto=format&fit=crop' },
-  { id: 'all', title: 'All Seasons', image: 'https://images.unsplash.com/photo-1472712739516-7ad2b786e1f7?q=80&w=400&auto=format&fit=crop' },
+  { id: 'spring', title: 'Spring', image: require('../../assets/spring-season.jpg') },
+  { id: 'summer', title: 'Summer', image: require('../../assets/summer-season.png') },
+  { id: 'autumn', title: 'Autumn', image: require('../../assets/autumn-season.png') },
+  { id: 'winter', title: 'Winter', image: require('../../assets/winter-season.png') },
+  { id: 'all', title: 'All Seasons', image: require('../../assets/allseason.png') },
 ];
 
 export default function ChooseSeasonScreen() {
@@ -52,7 +52,7 @@ export default function ChooseSeasonScreen() {
                 onPress={() => setSelectedSeason(season.id)}
               >
                 <View style={styles.imageContainer}>
-                  <Image source={{ uri: season.image }} style={styles.cardImage} />
+                  <Image source={season.image} style={styles.cardImage} resizeMode="cover"/>
                   
                   {/* Checkmark Overlay */}
                   {isSelected && (
