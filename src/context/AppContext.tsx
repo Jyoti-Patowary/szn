@@ -16,6 +16,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [timeLeft, setTimeLeft] = useState(60);
   const [isCheckingTrial, setIsCheckingTrial] = useState(true);
 
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -30,58 +32,81 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const checkTrialStatus = async () => {
-      try {
-        const isSubscribedLocal = await AsyncStorage.getItem('@is_subscribed');
-        
-        if (isSubscribedLocal === 'true') {
-          setTimeLeft(0);
-          setIsLocked(false);
-        }
+ const checkTrialStatus = async (user: any) => {
+    setIsCheckingTrial(true);
+    try {
+      const isSubscribedLocal = await AsyncStorage.getItem('@is_subscribed');
+      
+      if (isSubscribedLocal === 'true') {
+        setTimeLeft(0);
+        setIsLocked(false);
+        return; 
+      }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          const { data: subData, error } = await supabase
-            .from('user_subscriptions')
-            .select('status, current_period_end')
-            .eq('user_id', session.user.id)
-            .single();
+      if (user) {
+        const { data: subData, error } = await supabase
+          .from('user_subscriptions')
+          .select('status, current_period_end')
+          .eq('user_id', user.id)
+          .single();
 
-          if (!error && subData) {
-            const isSubActive = subData.status === 'active' && new Date(subData.current_period_end) > new Date();
-            
-            if (isSubActive) {
-              await AsyncStorage.setItem('@is_subscribed', 'true');
-              setTimeLeft(0);
-              setIsLocked(false);
-              return; 
-            } else {
-              await AsyncStorage.removeItem('@is_subscribed');
-            }
+        if (!error && subData) {
+          const isSubActive = subData.status === 'active' && new Date(subData.current_period_end) > new Date();
+          
+          if (isSubActive) {
+            await AsyncStorage.setItem('@is_subscribed', 'true');
+            setTimeLeft(0);
+            setIsLocked(false);
+            return; 
+          } else {
+            await AsyncStorage.removeItem('@is_subscribed');
           }
         }
-
-        const hasFinishedTrial = await AsyncStorage.getItem('@trial_finished');
-        if (hasFinishedTrial === 'true') {
-          setTimeLeft(0);
-          setIsLocked(true); 
-        }
-
-      } catch (error) {
-        console.error("Error reading trial status", error);
-      } finally {
-        setIsCheckingTrial(false);
       }
-    };
 
-    checkTrialStatus();
+      const hasFinishedTrial = await AsyncStorage.getItem('@trial_finished');
+      if (hasFinishedTrial === 'true') {
+        setTimeLeft(0);
+        setIsLocked(true); 
+      } else {
+        setIsLocked(false); // Ensure they start unlocked if trial isn't finished
+      }
+
+    } catch (error) {
+      console.error("Error reading trial status", error);
+    } finally {
+      setIsCheckingTrial(false);
+    }
+  };
+
+  useEffect(() => {
+    // Check initial session on app load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session?.user);
+      checkTrialStatus(session?.user);
+    });
+
+    // Listen for auth changes (Logins and Logouts)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setIsAuthenticated(!!session?.user);
+      
+      if (event === 'SIGNED_OUT') {
+        await AsyncStorage.removeItem('@trial_finished');
+        await AsyncStorage.removeItem('@is_subscribed');
+        setTimeLeft(60);
+        setIsLocked(false);
+      } else if (event === 'SIGNED_IN') {
+        // 👇 3. Crucial! Re-verify the user when they successfully log in
+        await checkTrialStatus(session?.user);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // RUN THE TRIAL TIMER
   useEffect(() => {
-    if (isCheckingTrial || isLocked || timeLeft === 0) return;
+    if (isCheckingTrial || isLocked || timeLeft === 0 || !isAuthenticated) return;
 
     const timerId = setInterval(() => {
       setTimeLeft((prevTime) => {
@@ -97,7 +122,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isCheckingTrial, isLocked, timeLeft]);
+  }, [isCheckingTrial, isLocked, timeLeft, isAuthenticated]);
 
   return (
     <AppContext.Provider value={{ isLocked, setIsLocked, timeLeft, setTimeLeft }}>

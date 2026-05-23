@@ -113,7 +113,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   ChangePassword: undefined;
   HelpSupport: undefined;
-  ProductList: { type: string; title: string };
+  ProductList: { type: string; title: string; season?: string };
   ProductDetail: { product: any };
   LookDetail: { lookId: string };
 };

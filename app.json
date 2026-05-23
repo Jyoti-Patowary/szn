@@ -23,7 +23,10 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "softwareKeyboardLayoutMode": "pan",
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["com.android.vending.BILLING", "...other permissions"],
+      "package": "com.yourszn.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
