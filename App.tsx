@@ -9,12 +9,13 @@ import RootNavigator from './src/navigation/RootNavigator';
 
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { PlayfairDisplay_400Regular, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
+import { SavedItemsProvider } from './src/context/SavedItemsContext';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    'KeplerStd-Medium': require('./assets/fonts/KeplerStd-Medium.otf'), 
+    'KeplerStd-Medium': require('./assets/fonts/KeplerStd-Medium.otf'),
     'Almarai-Light': require('./assets/fonts/Almarai-Light.ttf'),
     'Almarai-Regular': require('./assets/fonts/Almarai-Regular.ttf'),
     'Almarai-Bold': require('./assets/fonts/Almarai-Bold.ttf'),
@@ -40,9 +41,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <SavedItemsProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </SavedItemsProvider>
       </AppProvider>
       <StatusBar style="auto" />
     </SafeAreaProvider>

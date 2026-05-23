@@ -3,14 +3,15 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import {
   View, Text, StyleSheet, FlatList, Image,
-  TouchableOpacity, TextInput, ActivityIndicator, Modal, Dimensions, ScrollView
+  TouchableOpacity, TextInput, ActivityIndicator, Dimensions, ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import CustomRangeSlider from '../components/CustomRangeSlider';
 import FilterModal from '../components/FilterModal';
+import SaveButton from '../components/SaveButton';
+import { useSavedItems } from '../context/SavedItemsContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
@@ -19,6 +20,8 @@ const PAGE_SIZE = 20;
 export default function ProductListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<any>();
+
+  const { savedProducts } = useSavedItems();
 
   const { type = 'Dresses', title = 'Dresses', season } = route.params || {};
 
@@ -181,20 +184,25 @@ export default function ProductListScreen() {
   };
 
   const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity style={styles.productCard} activeOpacity={0.8} onPress={() => navigation.navigate('ProductDetail', { product: item })}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.displayImage }} style={styles.productImage} />
-        <TouchableOpacity style={styles.heartButton}>
-          <Ionicons name="heart-outline" size={18} color="#A67B5B" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={styles.productTitle} numberOfLines={1}>
-          {item.name || 'Solid Sleeveless Maxi'}
-        </Text>
-        <Text style={styles.productPrice}>{item.price || '$0.00'}</Text>
-      </View>
-    </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.productCard}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('ProductDetail', { product: item })}
+      >
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: item.displayImage }} style={styles.productImage} />
+          <SaveButton 
+            itemId={item.id} 
+            type="product" 
+            style={styles.heartButton} 
+            size={18}
+          />
+        </View>
+        <View style={styles.productInfo}>
+          <Text style={styles.productTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.productPrice}>{item.price || '$0.00'}</Text>
+        </View>
+      </TouchableOpacity>
   );
 
   return (
@@ -236,6 +244,7 @@ export default function ProductListScreen() {
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           numColumns={2}
+          extraData={savedProducts}
           contentContainerStyle={styles.listContent}
           columnWrapperStyle={styles.rowWrapper}
           showsVerticalScrollIndicator={false}

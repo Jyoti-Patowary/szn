@@ -10,7 +10,7 @@ import * as Linking from 'expo-linking';
 import { colors, typography } from '../theme/colors';
 import { Mail, Eye, EyeOff } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons'; 
-
+import * as AppleAuthentication from 'expo-apple-authentication';
 import BottomCard from '../components/BottomCard';
 
 type AuthState = 'welcome_options' | 'sign_in' | 'sign_up' | 'forgot_password';
@@ -48,7 +48,36 @@ export default function AuthScreen() {
     setConfirmError('');
   };
 
-  // --- SUPABASE AUTH FUNCTIONS ---
+  async function signInWithAppleNative() {
+  setLoading(true);
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+
+    if (credential.identityToken) {
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'apple',
+        token: credential.identityToken,
+      });
+
+      if (error) throw error;
+    } else {
+      throw new Error('No identity token found from Apple.');
+    }
+  } catch (error: any) {
+    if (error.code === 'ERR_CANCELED') {
+      return;
+    }
+    Alert.alert('Apple Sign In Failed', error.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
   async function signInWithEmail() {
     clearErrors();
     let isValid = true;
@@ -217,7 +246,7 @@ export default function AuthScreen() {
       <Text style={styles.cardSubtitle}>Discover the colors, styles, and combinations that truly suits you.</Text>
 
       {Platform.OS === 'ios' && (
-        <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.black }]} onPress={() => signInWithSocial('apple')}
+        <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.black }]} onPress={signInWithAppleNative}
           disabled={loading}> 
           <Ionicons name="logo-apple" size={23} color={colors.white} />
           <Text style={[styles.socialButtonText, { color: colors.white }]}>Continue with Apple</Text>

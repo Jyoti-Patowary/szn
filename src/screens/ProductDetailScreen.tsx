@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { 
-  View, Text, StyleSheet, Image, SafeAreaView, 
-  TouchableOpacity, Modal, TextInput, Dimensions, Linking, PanResponder
+import {
+  View, Text, StyleSheet, Image,
+  TouchableOpacity, TextInput, Dimensions, Linking, PanResponder
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import SaveButton from '../components/SaveButton';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
@@ -14,8 +16,8 @@ export default function ProductDetailScreen() {
   const route = useRoute<any>();
   const { product } = route.params || {};
 
-  const images = (product?.image_urls && product.image_urls.length > 0) 
-    ? product.image_urls 
+  const images = (product?.image_urls && product.image_urls.length > 0)
+    ? product.image_urls
     : [product?.listing_image_url || FALLBACK_IMAGE];
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -27,40 +29,33 @@ export default function ProductDetailScreen() {
   const productTitle = product?.name || 'Elegant Dress';
   const productPrice = product?.price || '$0.00';
 
-  // ==========================================
-  // GESTURE RESPONDERS (SWIPE CONTROLS)
-  // ==========================================
-
-  // 1. Detect Swipe UP on the main screen to open Details
   const mainPanResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy < -20, // Only activate if swiping UP
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy < -20,
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < -50) { // If swiped up far enough
+        if (gestureState.dy < -50) {
           setIsDetailsVisible(true);
         }
       },
     })
   ).current;
 
-  // 2. Detect Swipe DOWN on the Details Sheet to close it
   const detailsPanResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 20, // Only activate if swiping DOWN
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 20,
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 50) { // If swiped down far enough
+        if (gestureState.dy > 50) { 
           setIsDetailsVisible(false);
         }
       },
     })
   ).current;
 
-  // 3. Detect Swipe DOWN on the Share Sheet to close it
   const sharePanResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 20, // Only activate if swiping DOWN
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy > 20,
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy > 50) { // If swiped down far enough
+        if (gestureState.dy > 50) { 
           setIsShareVisible(false);
         }
       },
@@ -68,10 +63,9 @@ export default function ProductDetailScreen() {
   ).current;
 
   return (
-    // Apply the Swipe Up gesture to the whole background screen
     <View style={styles.container} {...mainPanResponder.panHandlers}>
-      
-      <Image source={{ uri: images[activeImageIndex] }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+
+      <Image source={{ uri: images[activeImageIndex] }} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
 
       <SafeAreaView style={styles.topNavContainer}>
         <View style={styles.topNavRow}>
@@ -97,110 +91,109 @@ export default function ProductDetailScreen() {
         </View>
       )}
 
-      {/* Button still works as a fallback tap! */}
       <TouchableOpacity style={styles.swipeUpArea} activeOpacity={0.8} onPress={() => setIsDetailsVisible(true)}>
         <Ionicons name="chevron-up" size={24} color="#FFF" />
         <Text style={styles.swipeUpText}>Swipe up for details</Text>
       </TouchableOpacity>
 
-      {/* ========================================== */}
-      {/* DETAILS BOTTOM SHEET */}
-      {/* ========================================== */}
-      <Modal visible={isDetailsVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalDismissArea} onPress={() => setIsDetailsVisible(false)} />
-          
-          {/* Apply Swipe Down gesture to the sheet itself */}
-          <View style={styles.bottomSheet} {...detailsPanResponder.panHandlers}>
-            <View style={styles.sheetHandle} />
-            
-            <View style={styles.detailHeaderRow}>
-              <View style={styles.detailTextCol}>
-                <Text style={styles.brandText}>{brandName.toUpperCase()}</Text>
-                <Text style={styles.titleText}>{productTitle}</Text>
-                <Text style={styles.priceText}>{productPrice}</Text>
-              </View>
-              <TouchableOpacity style={styles.heartBtn}>
-                <Ionicons name="heart-outline" size={24} color="#A67B5B" />
-              </TouchableOpacity>
-            </View>
+      {/* PURE REACT NATIVE ABSOLUTE VIEW (Replaces Modal) */}
+      {isDetailsVisible && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: 100 }]}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity style={styles.modalDismissArea} onPress={() => setIsDetailsVisible(false)} />
+            <View style={styles.bottomSheet} {...detailsPanResponder.panHandlers}>
+              <View style={styles.sheetHandle} />
 
-            <View style={styles.sizeSection}>
-              <View style={styles.sizeHeaderRow}>
-                <Text style={styles.sectionLabel}>Select Size</Text>
-                <Text style={styles.sizeGuideText}>Size Guide</Text>
-              </View>
-              <View style={styles.sizeOptionsRow}>
-                {['XS', 'S', 'M', 'L', 'XL'].map(size => {
-                  const isSelected = selectedSize === size;
-                  return (
-                    <TouchableOpacity key={size} style={[styles.sizeCircle, isSelected && styles.sizeCircleActive]} onPress={() => setSelectedSize(size)}>
-                      <Text style={[styles.sizeText, isSelected && styles.sizeTextActive]}>{size}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.shopNowBtn} onPress={() => product?.source_url && Linking.openURL(product.source_url)}>
-              <Text style={styles.shopNowText}>Shop Now</Text>
-              <Ionicons name="arrow-forward-outline" size={20} color="#A67B5B" style={{ transform: [{ rotate: '-45deg' }] }} />
-            </TouchableOpacity>
-
-          </View>
-        </View>
-      </Modal>
-
-      {/* ========================================== */}
-      {/* SHARE BOTTOM SHEET */}
-      {/* ========================================== */}
-      <Modal visible={isShareVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.modalDismissArea} onPress={() => setIsShareVisible(false)} />
-          
-          {/* Apply Swipe Down gesture to the sheet itself */}
-          <View style={styles.bottomSheet} {...sharePanResponder.panHandlers}>
-            <View style={styles.sheetHandle} />
-            
-            <View style={styles.shareHeader}>
-              <Text style={styles.shareTitle}>Share Look</Text>
-              <Text style={styles.shareSubtitle}>Send this style to someone ✨</Text>
-            </View>
-
-            <View style={styles.shareProductCard}>
-              <Image source={{ uri: images[0] }} style={styles.shareProductImg} />
-              <View style={styles.shareProductInfo}>
-                <Text style={styles.brandText}>{brandName.toUpperCase()}</Text>
-                <Text style={styles.titleText} numberOfLines={1}>{productTitle}</Text>
-                <Text style={styles.sharePriceText}>{productPrice}</Text>
-              </View>
-            </View>
-
-            <View style={styles.socialIconsRow}>
-              {[
-                { name: 'logo-whatsapp', label: 'WhatsApp' },
-                { name: 'logo-instagram', label: 'Instagram' },
-                { name: 'link-outline', label: 'Copy Link' },
-                { name: 'ellipsis-horizontal', label: 'More' }
-              ].map(social => (
-                <View key={social.label} style={styles.socialItem}>
-                  <TouchableOpacity style={styles.socialCircle}>
-                    <Ionicons name={social.name as any} size={24} color="#333" />
-                  </TouchableOpacity>
-                  <Text style={styles.socialLabel}>{social.label}</Text>
+              <View style={styles.detailHeaderRow}>
+                <View style={styles.detailTextCol}>
+                  <Text style={styles.brandText}>{brandName.toUpperCase()}</Text>
+                  <Text style={styles.titleText}>{productTitle}</Text>
+                  <Text style={styles.priceText}>{productPrice}</Text>
                 </View>
-              ))}
+                <SaveButton 
+                  itemId={product.id} 
+                  type="product" 
+                  style={styles.heartBtn} 
+                  size={24}
+                />
+              </View>
+
+              <View style={styles.sizeSection}>
+                <View style={styles.sizeHeaderRow}>
+                  <Text style={styles.sectionLabel}>Select Size</Text>
+                  <Text style={styles.sizeGuideText}>Size Guide</Text>
+                </View>
+                <View style={styles.sizeOptionsRow}>
+                  {['XS', 'S', 'M', 'L', 'XL'].map(size => {
+                    const isSelected = selectedSize === size;
+                    return (
+                      <TouchableOpacity key={size} style={[styles.sizeCircle, isSelected && styles.sizeCircleActive]} onPress={() => setSelectedSize(size)}>
+                        <Text style={[styles.sizeText, isSelected && styles.sizeTextActive]}>{size}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.shopNowBtn} onPress={() => product?.source_url && Linking.openURL(product.source_url)}>
+                <Text style={styles.shopNowText}>Shop Now</Text>
+                <Ionicons name="arrow-forward-outline" size={20} color="#A67B5B" style={{ transform: [{ rotate: '-45deg' }] }} />
+              </TouchableOpacity>
+
             </View>
-
-            <TextInput style={styles.shareInput} placeholder="Add a message (Optional)" placeholderTextColor="#999" />
-            
-            <TouchableOpacity style={styles.sendBtn} onPress={() => setIsShareVisible(false)}>
-              <Text style={styles.sendBtnText}>Send</Text>
-            </TouchableOpacity>
-
           </View>
         </View>
-      </Modal>
+      )}
+
+      {/* SHARE BOTTOM SHEET (Replaces Modal) */}
+      {isShareVisible && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: 100 }]}>
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity style={styles.modalDismissArea} onPress={() => setIsShareVisible(false)} />
+
+            <View style={styles.bottomSheet} {...sharePanResponder.panHandlers}>
+              <View style={styles.sheetHandle} />
+
+              <View style={styles.shareHeader}>
+                <Text style={styles.shareTitle}>Share Look</Text>
+                <Text style={styles.shareSubtitle}>Send this style to someone ✨</Text>
+              </View>
+
+              <View style={styles.shareProductCard}>
+                <Image source={{ uri: images[0] }} style={styles.shareProductImg} />
+                <View style={styles.shareProductInfo}>
+                  <Text style={styles.brandText}>{brandName.toUpperCase()}</Text>
+                  <Text style={styles.titleText} numberOfLines={1}>{productTitle}</Text>
+                  <Text style={styles.sharePriceText}>{productPrice}</Text>
+                </View>
+              </View>
+
+              <View style={styles.socialIconsRow}>
+                {[
+                  { name: 'logo-whatsapp', label: 'WhatsApp' },
+                  { name: 'logo-instagram', label: 'Instagram' },
+                  { name: 'link-outline', label: 'Copy Link' },
+                  { name: 'ellipsis-horizontal', label: 'More' }
+                ].map(social => (
+                  <View key={social.label} style={styles.socialItem}>
+                    <TouchableOpacity style={styles.socialCircle}>
+                      <Ionicons name={social.name as any} size={24} color="#333" />
+                    </TouchableOpacity>
+                    <Text style={styles.socialLabel}>{social.label}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <TextInput style={styles.shareInput} placeholder="Add a message (Optional)" placeholderTextColor="#999" />
+
+              <TouchableOpacity style={styles.sendBtn} onPress={() => setIsShareVisible(false)}>
+                <Text style={styles.sendBtnText}>Send</Text>
+              </TouchableOpacity>
+
+            </View>
+          </View>
+        </View>
+      )}
 
     </View>
   );
@@ -210,7 +203,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: 'rgba(247, 243, 238, 1)' },
   topNavContainer: { position: 'absolute', top: 0, width: '100%', zIndex: 10 },
   topNavRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10 },
-  iconBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center' },
+  iconBtn: {
+    width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center',
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.17, shadowRadius: 3.05, elevation: 4
+  },
   thumbnailsContainer: { position: 'absolute', right: 20, top: SCREEN_HEIGHT * 0.35, backgroundColor: 'rgba(255,255,255,0.5)', padding: 6, borderRadius: 12 },
   thumbnailWrapper: { width: 48, height: 64, borderRadius: 8, marginBottom: 8, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
   thumbnailActive: { borderColor: '#FFF' },

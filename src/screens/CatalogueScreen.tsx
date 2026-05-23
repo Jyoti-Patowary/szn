@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Local UI mapping for seasons
+
 const SEASONS = [
   { id: 'winter', label: 'Winter', image: require('../../assets/winter-icon.png'), bgColor: '#4A5568' },
   { id: 'autumn', label: 'Autumn', image: require('../../assets/autumn-icon.png'), bgColor: '#C28E6B' },
@@ -34,9 +34,8 @@ export default function CatalogueScreen() {
   const [groupedProducts, setGroupedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
 
-  console.log(`Downloaded ${allProducts.length} items. First item:`, allProducts[0]);
+  // console.log(`Downloaded ${allProducts.length} items. First item:`, allProducts[0]);
 
- // 1. FETCH ALL: Loop through pages with stable sorting
   useEffect(() => {
     const fetchAllProducts = async () => {
       setIsLoading(true);
@@ -72,7 +71,6 @@ export default function CatalogueScreen() {
           }
         }
 
-        // 👈 FIX 2: Strip out any accidental duplicates just to be mathematically certain
         const uniqueProducts = Array.from(new Map(allFetched.map(item => [item.id, item])).values());
         
         console.log(`✅ TOTAL CATALOG LOADED: ${uniqueProducts.length} items`);
@@ -88,7 +86,6 @@ export default function CatalogueScreen() {
     fetchAllProducts();
   }, []);
 
-  // 2. FETCH TAXONOMY ONCE: Get dynamic categories
   useEffect(() => {
     const fetchTaxonomy = async () => {
       try {
@@ -112,7 +109,6 @@ export default function CatalogueScreen() {
     fetchTaxonomy();
   }, []);
 
-  // 3. DEBOUNCE SEARCH INPUT
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(searchInput);
@@ -120,7 +116,7 @@ export default function CatalogueScreen() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // 4. DYNAMIC FILTER & COUNT: Runs instantly when UI changes
+
   useEffect(() => {
     if (allProducts.length === 0) return;
 
