@@ -227,7 +227,7 @@ export default function WishlistScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F5F0',
+    backgroundColor: '#F7F3EE',
   },
   centerContainer: {
     flex: 1,
@@ -245,14 +245,13 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: 'Inter_400Regular',
-    fontSize: 32,
-    color: '#333',
-    marginBottom: 4,
+    fontSize: 24,
+    color: '#2E2E2E'
   },
   headerSubtitle: {
     fontFamily: 'Inter_400Regular',
     fontSize: 16,
-    color: '#666',
+    color: '#6B6B6B',
   },
   toggleContainer: {
     flexDirection: 'row',
