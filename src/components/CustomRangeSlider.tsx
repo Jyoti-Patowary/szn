@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     sliderContainer: {
         height: 20,
         justifyContent: 'center',
-        // marginHorizontal: 12,
+        marginHorizontal: 12,
     },
     sliderBackground: {
         height: 2,

@@ -10,6 +10,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { PlayfairDisplay_400Regular, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import { SavedItemsProvider } from './src/context/SavedItemsContext';
+import { UserProfileProvider } from './src/context/UserProfileContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,11 +42,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
-        <SavedItemsProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </SavedItemsProvider>
+        <UserProfileProvider>
+          <SavedItemsProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </SavedItemsProvider>
+        </UserProfileProvider>
       </AppProvider>
       <StatusBar style="auto" />
     </SafeAreaProvider>

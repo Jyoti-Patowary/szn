@@ -32,12 +32,7 @@ export default function WishlistScreen() {
             .from('user_saved_products') 
             .select(`
               id,
-              catalog_products (
-                id,
-                name,
-                price,
-                image_urls
-              )
+              catalog_products (*)
             `)
             .eq('user_id', user.id);
 
@@ -47,15 +42,15 @@ export default function WishlistScreen() {
             const formatted = data.map((item: any) => {
               const prod = item.catalog_products; 
               
-              // Safely grab the first image available
-              const bestImage = (prod.image_urls && prod.image_urls[0]) || FALLBACK_IMAGE;
+              const bestImage = prod.listing_image_url || (prod.image_urls && prod.image_urls[0]) || FALLBACK_IMAGE;
               
               return {
                 saveId: item.id, 
                 productId: prod.id,
                 title: prod.name || 'Untitled Product',
                 price: prod.price || '$0.00',
-                image: bestImage
+                image: bestImage,
+                fullProductObject: prod // Passed to detail screen
               };
             });
             setSavedProducts(formatted);
@@ -120,39 +115,43 @@ export default function WishlistScreen() {
 
   const renderCatalogueItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
-      style={styles.card} 
+      style={styles.productCard} 
       activeOpacity={0.8}
-      onPress={() => navigation.navigate('ProductDetail', { product: item })}
+      onPress={() => item.fullProductObject && navigation.navigate('ProductDetail', { product: item.fullProductObject })}
     >
-      <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <TouchableOpacity 
-        style={styles.heartButton}
-        onPress={() => handleRemove(item.saveId, 'product')}
-      >
-        <Ionicons name="heart" size={20} color="#A0785A" />
-      </TouchableOpacity>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.cardPrice}>{item.price}</Text>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <TouchableOpacity 
+          style={styles.heartButton}
+          onPress={() => handleRemove(item.saveId, 'product')}
+        >
+          <Ionicons name="heart" size={18} color="#AA8368" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.productTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.productPrice}>{item.price}</Text>
       </View>
     </TouchableOpacity>
   );
 
   const renderSavedLook = ({ item }: { item: any }) => (
     <TouchableOpacity 
-      style={styles.card}
+      style={styles.productCard}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: item.image }} style={styles.cardImage} />
-      <TouchableOpacity 
-        style={styles.heartButton}
-        onPress={() => handleRemove(item.saveId, 'look')}
-      >
-        <Ionicons name="heart" size={20} color="#A0785A" />
-      </TouchableOpacity>
-      <View style={styles.cardInfo}>
-        <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.itemCount}>{item.itemsCount} Items</Text>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        <TouchableOpacity 
+          style={styles.heartButton}
+          onPress={() => handleRemove(item.saveId, 'look')}
+        >
+          <Ionicons name="heart" size={18} color="#AA8368" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.productInfo}>
+        <Text style={styles.productTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.productPrice}>{item.itemsCount} Items</Text>
       </View>
     </TouchableOpacity>
   );
@@ -195,7 +194,7 @@ export default function WishlistScreen() {
           keyExtractor={(item) => item.saveId}
           numColumns={2}
           contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.row}
+          columnWrapperStyle={styles.rowWrapper}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={() => (
             <View style={styles.centerContainer}>
@@ -211,7 +210,7 @@ export default function WishlistScreen() {
           keyExtractor={(item) => item.saveId}
           numColumns={2}
           contentContainerStyle={styles.listContent}
-          columnWrapperStyle={styles.row}
+          columnWrapperStyle={styles.rowWrapper}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={() => (
             <View style={styles.centerContainer}>
@@ -244,21 +243,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerTitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 24,
-    color: '#2E2E2E'
+     fontSize: 24, fontWeight: '500', color: '#333333', marginBottom: 4 
   },
   headerSubtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 16,
-    color: '#6B6B6B',
+    fontSize: 16, color: '#6B6B6B', marginBottom: 32 
   },
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFF',
     borderRadius: 25,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 32,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -286,58 +281,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 120,
   },
-  row: {
-    justifyContent: 'space-between',
-    marginBottom: 16,
+  rowWrapper: { 
+    justifyContent: 'space-between', 
+    marginBottom: 24 
   },
-  card: {
-    width: '48%',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    position: 'relative',
+  productCard: { 
+    width: '47%' 
   },
-  cardImage: {
-    width: '100%',
-    height: 180,
-    backgroundColor: '#EAEAEA',
+  imageContainer: { 
+    width: '100%', 
+    height: 220, 
+    borderRadius: 12, 
+    backgroundColor: '#EBE5DE', 
+    overflow: 'hidden', 
+    position: 'relative' 
   },
-  heartButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    zIndex: 10,
+  productImage: { 
+    width: '100%', 
+    height: '100%', 
+    resizeMode: 'cover' 
   },
-  cardInfo: {
-    padding: 12,
+  heartButton: { 
+    position: 'absolute', 
+    top: 10, 
+    right: 10, 
+    backgroundColor: '#FFF', 
+    width: 28, 
+    height: 28, 
+    borderRadius: 14, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 4, 
+    shadowOffset: { width: 0, height: 2 } 
   },
-  cardTitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 4,
+  productInfo: { 
+    marginTop: 12, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
   },
-  cardPrice: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 12,
-    color: '#666',
+  productTitle: { 
+    flex: 1, 
+    fontSize: 11, 
+    color: '#333', 
+    fontWeight: '500', 
+    textTransform: 'uppercase', 
+    marginRight: 8 
   },
-  itemCount: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 12,
-    color: '#999',
+  productPrice: { 
+    fontSize: 12, 
+    color: '#666', 
+    fontWeight: '400' 
   },
 });

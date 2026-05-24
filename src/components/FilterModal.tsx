@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, Modal,
     Dimensions, ScrollView
@@ -12,23 +12,31 @@ interface FilterModalProps {
     isVisible: boolean;
     onClose: () => void;
     onReset: () => void;
-    resultsCount: number;
+    resultsCount?: number;
     sortOption: string;
     setSortOption: (val: string) => void;
 
-    availableCategories: string[];
-    selectedCategory: string;
-    setSelectedCategory: (val: string) => void;
+    availableCategories?: string[];
+    selectedCategory?: string;
+    setSelectedCategory?: (val: string) => void;
 
-    availableColors: string[];
-    selectedColor: string;
-    setSelectedColor: (val: string) => void;
+    availableColors?: string[];
+    selectedColor?: string;
+    setSelectedColor?: (val: string) => void;
 
-    maxCatalogPrice: number;
-    minPrice: number;
-    setMinPrice: (val: number) => void;
-    maxPrice: number;
-    setMaxPrice: (val: number) => void;
+    maxCatalogPrice?: number;
+    minPrice?: number;
+    setMinPrice?: (val: number) => void;
+    maxPrice?: number;
+    setMaxPrice?: (val: number) => void;
+
+    availableSeasons?: string[];
+    selectedSeason?: string;
+    setSelectedSeason?: (val: string) => void;
+
+    availableTags?: string[];
+    selectedTag?: string;
+    setSelectedTag?: (val: string) => void;
 }
 
 export default function FilterModal({
@@ -38,23 +46,70 @@ export default function FilterModal({
     resultsCount,
     sortOption,
     setSortOption,
-    availableCategories,
+    
+    availableCategories = [],
     selectedCategory,
     setSelectedCategory,
-    availableColors,
+    
+    availableColors = [],
     selectedColor,
     setSelectedColor,
+    
     maxCatalogPrice,
     minPrice,
     setMinPrice,
     maxPrice,
-    setMaxPrice
+    setMaxPrice,
+
+    availableSeasons = [],
+    selectedSeason,
+    setSelectedSeason,
+    
+    availableTags = [],
+    selectedTag,
+    setSelectedTag
 }: FilterModalProps) {
+    const [localSort, setLocalSort] = useState(sortOption);
+    const [localCategory, setLocalCategory] = useState(selectedCategory || '');
+    const [localColor, setLocalColor] = useState(selectedColor || '');
+    const [localMin, setLocalMin] = useState(minPrice);
+    const [localMax, setLocalMax] = useState(maxPrice);
+    const [localSeason, setLocalSeason] = useState(selectedSeason || '');
+    const [localTag, setLocalTag] = useState(selectedTag || '');
 
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (isVisible) {
+            setLocalSort(sortOption);
+            setLocalCategory(selectedCategory || '');
+            setLocalColor(selectedColor || '');
+            setLocalMin(minPrice);
+            setLocalMax(maxPrice);
+            setLocalSeason(selectedSeason || '');
+            setLocalTag(selectedTag || '');
+        }
+    }, [isVisible, sortOption, selectedCategory, selectedColor, minPrice, maxPrice, selectedSeason, selectedTag]);
+
     const toggleSection = (section: string) => {
         setExpandedSection(expandedSection === section ? null : section);
+    };
+
+    const handleApply = () => {
+        setSortOption(localSort);
+        if (setSelectedCategory) setSelectedCategory(localCategory);
+        if (setSelectedColor) setSelectedColor(localColor);
+        if (setMinPrice && localMin !== undefined) setMinPrice(localMin);
+        if (setMaxPrice && localMax !== undefined) setMaxPrice(localMax);
+        if (setSelectedSeason) setSelectedSeason(localSeason);
+        if (setSelectedTag) setSelectedTag(localTag);
+        
+        onClose();
+    };
+
+    const handleReset = () => {
+        onReset();
+        onClose();
     };
 
     return (
@@ -72,19 +127,22 @@ export default function FilterModal({
 
                     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
 
+                        {/* SORTING */}
                         <View style={styles.sortGroup}>
                             {[
                                 { id: 'recent', label: 'Most recent' },
-                                { id: 'price_asc', label: 'Price : Low to High' },
-                                { id: 'price_desc', label: 'Price : High to Low' },
+                                ...(maxCatalogPrice !== undefined ? [
+                                    { id: 'price_asc', label: 'Price : Low to High' },
+                                    { id: 'price_desc', label: 'Price : High to Low' }
+                                ] : []),
                                 { id: 'oldest', label: 'Oldest' },
                             ].map(opt => {
-                                const isActive = sortOption === opt.id;
+                                const isActive = localSort === opt.id;
                                 return (
                                     <TouchableOpacity
                                         key={opt.id}
                                         style={styles.radioRow}
-                                        onPress={() => setSortOption(opt.id)}
+                                        onPress={() => setLocalSort(opt.id)}
                                     >
                                         <Text style={[styles.radioLabel, { color: isActive ? '#2E2E2E' : '#6B6B6B' }]}>
                                             {opt.label}
@@ -98,7 +156,8 @@ export default function FilterModal({
                             })}
                         </View>
 
-                        {availableCategories.length > 0 && (
+                        {/* CATEGORY */}
+                        {availableCategories.length > 0 && setSelectedCategory && (
                             <View style={styles.filterGroup}>
                                 <TouchableOpacity style={styles.expandableRow} onPress={() => toggleSection('CATEGORY')}>
                                     <Text style={styles.filterSectionTitle}>CATEGORY</Text>
@@ -109,18 +168,18 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.pill, selectedCategory === '' && styles.pillActive]}
-                                                onPress={() => setSelectedCategory('')}
+                                                style={[styles.pill, localCategory === '' && styles.pillActive]}
+                                                onPress={() => setLocalCategory('')}
                                             >
-                                                <Text style={[styles.pillText, selectedCategory === '' && styles.pillTextActive]}>All</Text>
+                                                <Text style={[styles.pillText, localCategory === '' && styles.pillTextActive]}>All</Text>
                                             </TouchableOpacity>
                                             {availableCategories.map((cat: string) => (
                                                 <TouchableOpacity
                                                     key={cat}
-                                                    style={[styles.pill, selectedCategory === cat && styles.pillActive]}
-                                                    onPress={() => setSelectedCategory(cat)}
+                                                    style={[styles.pill, localCategory === cat && styles.pillActive]}
+                                                    onPress={() => setLocalCategory(localCategory === cat ? '' : cat)}
                                                 >
-                                                    <Text style={[styles.pillText, selectedCategory === cat && styles.pillTextActive]}>{cat}</Text>
+                                                    <Text style={[styles.pillText, localCategory === cat && styles.pillTextActive]}>{cat}</Text>
                                                 </TouchableOpacity>
                                             ))}
                                         </ScrollView>
@@ -129,7 +188,8 @@ export default function FilterModal({
                             </View>
                         )}
 
-                        {availableColors.length > 0 && (
+                        {/* COLOR */}
+                        {availableColors.length > 0 && setSelectedColor && (
                             <View style={styles.filterGroup}>
                                 <TouchableOpacity style={styles.expandableRow} onPress={() => toggleSection('COLOR')}>
                                     <Text style={styles.filterSectionTitle}>COLOR</Text>
@@ -140,8 +200,8 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.colorSwatchWrapper, selectedColor === '' && styles.colorSwatchWrapperActive]}
-                                                onPress={() => setSelectedColor('')}
+                                                style={[styles.colorSwatchWrapper, localColor === '' && styles.colorSwatchWrapperActive]}
+                                                onPress={() => setLocalColor('')}
                                             >
                                                 <View style={[styles.colorSwatch, { backgroundColor: '#EBE5DE', justifyContent: 'center', alignItems: 'center' }]}>
                                                     <Text style={{ fontSize: 9, color: '#333', fontWeight: 'bold' }}>ALL</Text>
@@ -150,8 +210,8 @@ export default function FilterModal({
                                             {availableColors.map((col: string) => (
                                                 <TouchableOpacity
                                                     key={col}
-                                                    style={[styles.colorSwatchWrapper, selectedColor === col && styles.colorSwatchWrapperActive]}
-                                                    onPress={() => setSelectedColor(col)}
+                                                    style={[styles.colorSwatchWrapper, localColor === col && styles.colorSwatchWrapperActive]}
+                                                    onPress={() => setLocalColor(localColor === col ? '' : col)}
                                                 >
                                                     <View style={[styles.colorSwatch, { backgroundColor: col.toLowerCase() }]} />
                                                 </TouchableOpacity>
@@ -162,28 +222,95 @@ export default function FilterModal({
                             </View>
                         )}
 
-                        <View style={styles.filterGroup}>
-                            <Text style={styles.filterSectionTitle}>PRICE RANGE</Text>
-                            <CustomRangeSlider
-                                absoluteMax={maxCatalogPrice}
-                                currentMin={minPrice}
-                                currentMax={maxPrice}
-                                onMinChange={setMinPrice}
-                                onMaxChange={setMaxPrice}
-                            />
-                            <View style={styles.priceLabels}>
-                                <Text style={styles.priceText}>${minPrice}</Text>
-                                <Text style={styles.priceText}>${maxPrice}</Text>
+                        {/* SEASON */}
+                        {availableSeasons.length > 0 && setSelectedSeason && (
+                            <View style={styles.filterGroup}>
+                                <TouchableOpacity style={styles.expandableRow} onPress={() => toggleSection('SEASON')}>
+                                    <Text style={styles.filterSectionTitle}>SEASON</Text>
+                                    <Ionicons name={expandedSection === 'SEASON' ? "chevron-down" : "chevron-forward"} size={24} color="#bdb8b8" />
+                                </TouchableOpacity>
+
+                                {expandedSection === 'SEASON' && (
+                                    <View style={styles.expandedContent}>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+                                            <TouchableOpacity
+                                                style={[styles.pill, localSeason === '' && styles.pillActive]}
+                                                onPress={() => setLocalSeason('')}
+                                            >
+                                                <Text style={[styles.pillText, localSeason === '' && styles.pillTextActive]}>All</Text>
+                                            </TouchableOpacity>
+                                            {availableSeasons.map((season: string) => (
+                                                <TouchableOpacity
+                                                    key={season}
+                                                    style={[styles.pill, localSeason === season && styles.pillActive]}
+                                                    onPress={() => setLocalSeason(localSeason === season ? '' : season)}
+                                                >
+                                                    <Text style={[styles.pillText, localSeason === season && styles.pillTextActive]}>{season}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
                             </View>
-                        </View>
+                        )}
+
+                        {/* TAGS */}
+                        {availableTags.length > 0 && setSelectedTag && (
+                            <View style={styles.filterGroup}>
+                                <TouchableOpacity style={styles.expandableRow} onPress={() => toggleSection('TAG')}>
+                                    <Text style={styles.filterSectionTitle}>TAGS</Text>
+                                    <Ionicons name={expandedSection === 'TAG' ? "chevron-down" : "chevron-forward"} size={24} color="#bdb8b8" />
+                                </TouchableOpacity>
+
+                                {expandedSection === 'TAG' && (
+                                    <View style={styles.expandedContent}>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+                                            <TouchableOpacity
+                                                style={[styles.pill, localTag === '' && styles.pillActive]}
+                                                onPress={() => setLocalTag('')}
+                                            >
+                                                <Text style={[styles.pillText, localTag === '' && styles.pillTextActive]}>All</Text>
+                                            </TouchableOpacity>
+                                            {availableTags.map((tag: string) => (
+                                                <TouchableOpacity
+                                                    key={tag}
+                                                    style={[styles.pill, localTag === tag && styles.pillActive]}
+                                                    onPress={() => setLocalTag(localTag === tag ? '' : tag)}
+                                                >
+                                                    <Text style={[styles.pillText, localTag === tag && styles.pillTextActive]}>{tag}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+                            </View>
+                        )}
+
+                        {/* PRICE RANGE */}
+                        {maxCatalogPrice !== undefined && minPrice !== undefined && maxPrice !== undefined && setMinPrice && setMaxPrice && (
+                            <View style={styles.filterGroup}>
+                                <Text style={styles.filterSectionTitle}>PRICE RANGE</Text>
+                                <CustomRangeSlider
+                                    absoluteMax={maxCatalogPrice}
+                                    currentMin={localMin !== undefined ? localMin : minPrice}
+                                    currentMax={localMax !== undefined ? localMax : maxPrice}
+                                    onMinChange={setLocalMin}
+                                    onMaxChange={setLocalMax}
+                                />
+                                <View style={styles.priceLabels}>
+                                    <Text style={styles.priceText}>${localMin !== undefined ? localMin : minPrice}</Text>
+                                    <Text style={styles.priceText}>${localMax !== undefined ? localMax : maxPrice}</Text>
+                                </View>
+                            </View>
+                        )}
 
                     </ScrollView>
 
                     <View style={styles.actionRow}>
-                        <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
+                        <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
                             <Text style={styles.resetBtnText}>Reset</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.applyBtn} onPress={onClose}>
+                        <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
                             <Text style={styles.applyBtnText}>Apply Filter</Text>
                         </TouchableOpacity>
                     </View>
@@ -220,7 +347,7 @@ const styles = StyleSheet.create({
     colorSwatchWrapperActive: { borderColor: '#A67B5B' },
     colorSwatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
 
-    priceLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+    priceLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5, marginRight: 13 },
     priceText: { fontSize: 14, color: '#A6A6A6', fontWeight: '400', },
 
     actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
@@ -229,12 +356,6 @@ const styles = StyleSheet.create({
     applyBtn: { flex: 1, backgroundColor: '#A67B5B', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginLeft: 8 },
     applyBtnText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
 
-    expandableRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        // paddingVertical: 12,
-
-    },
-    expandedContent: { marginBottom: 0 },
+    expandableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    expandedContent: { paddingTop: 16, paddingBottom: 8 },
 });
