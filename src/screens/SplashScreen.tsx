@@ -97,7 +97,7 @@ export default function SplashScreen({ navigation }: any) {
 
           <View style={styles.textColumn}>
             <Image 
-              source={require('../../assets/splash_logo_1.jpeg')} 
+              source={require('../../assets/splash_logo_1.png')} 
               resizeMode="contain"
               style={{ width: width * 0.90, height: 240, top: 20, marginBottom: -20 }} 
             />

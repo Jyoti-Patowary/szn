@@ -1,150 +1,46 @@
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { supabase } from '../lib/supabase';
 import { useAppContext } from '../context/AppContext';
+import { useUserProfile } from '../context/UserProfileContext';
+import { useTheme } from '../context/ThemeContext';
 import { colors, typography } from '../theme/colors';
 import CustomModal from '../components/CustomModal';
 import { 
-  ArrowLeft, Heart, User, Lock, Link2 as LinkIcon, Palette, 
+  ArrowLeft, Heart, Lock, Link2 as LinkIcon, Palette, 
   HelpCircle, FileText, ShieldCheck, LogOut, 
   ChevronRight, Pencil, Calendar, X 
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
   const { isLocked } = useAppContext();
-  
-  const [userName, setUserName] = useState(''); 
-  const [userEmail, setUserEmail] = useState('');
-  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
 
+  const { profile, isLoadingProfile } = useUserProfile();
+  const { currentTheme } = useTheme(); 
+  
+  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
   const [isLogoutModalVisible, setLogoutModalVisible] = useState(false);
   const [isDeleteModalVisible, setDeleteModalVisible] = useState(false);
 
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  // const [isUploading, setIsUploading] = useState(false);
-
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchAuthData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        setUserEmail(user.email || '');
-        if (user.app_metadata?.providers) {
-          setLinkedProviders(user.app_metadata.providers);
-        }
-
-        const { data: profile, error } = await supabase
-          .from('app_users')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        if (profile && !error) {
-          setUserName(profile.display_name);
-          
-          if (profile.avatar_url) {
-            setAvatarUrl(profile.avatar_url);
-          } else if (user.user_metadata?.avatar_url) {
-            setAvatarUrl(user.user_metadata.avatar_url);
-          }
-        } else {
-          setUserName(user.user_metadata?.full_name || 'User');
-          if (user.user_metadata?.avatar_url) {
-            setAvatarUrl(user.user_metadata.avatar_url);
-          }
-        }
+      if (user && user.app_metadata?.providers) {
+        setLinkedProviders(user.app_metadata.providers);
       }
-      setLoading(false);
     };
 
     if (isFocused) {
-      fetchUserData();
+      fetchAuthData();
     }
   }, [isFocused]);
-
-
-  // const handleUpdateAvatar = async () => {
-  //   try {
-  //     const result = await ImagePicker.launchImageLibraryAsync({
-  //       mediaTypes: ['images'], 
-  //       allowsEditing: true,
-  //       aspect: [1, 1],
-  //       quality: 0.5,
-  //       base64: true,
-  //     });
-
-  //     if (result.canceled || !result.assets[0].base64) return;
-
-  //     setIsUploading(true);
-  //     const { data: { user } } = await supabase.auth.getUser();
-  //     if (!user) throw new Error('No user logged in');
-
-  //     const imagePath = `${user.id}/${Date.now()}.jpg`;
-  //     const { data: uploadData, error: uploadError } = await supabase.storage
-  //       .from('avatars')
-  //       .upload(imagePath, decode(result.assets[0].base64), {
-  //         contentType: 'image/jpeg',
-  //       });
-
-  //     if (uploadError) throw uploadError;
-
-  //     const { data: { publicUrl } } = supabase.storage
-  //       .from('avatars')
-  //       .getPublicUrl(imagePath);
-
-  //     const { error: updateError } = await supabase
-  //       .from('app_users')
-  //       .update({ avatar_url: publicUrl })
-  //       .eq('id', user.id);
-
-  //     if (updateError) throw updateError;
-
-  //     setAvatarUrl(publicUrl);
-
-  //   } catch (error) {
-  //     console.error('Error uploading image:', error);
-  //     alert('Failed to upload image. Please try again.');
-  //   } finally {
-  //     setIsUploading(false);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   const fetchUserData = async () => {
-  //     const { data: { user } } = await supabase.auth.getUser();
-      
-  //     if (user) {
-  //       setUserEmail(user.email || '');
-  //       if (user.app_metadata?.providers) {
-  //         setLinkedProviders(user.app_metadata.providers);
-  //       }
-  //       const { data: profile, error } = await supabase
-  //         .from('app_users')
-  //         .select('*')
-  //         .eq('id', user.id)
-  //         .single();
-
-  //       if (profile && !error) {
-  //         setUserName(profile.display_name);
-  //       } else {
-  //         setUserName(user.user_metadata?.full_name || 'User');
-  //       }
-  //     }
-  //     setLoading(false);
-  //   };
-
-  //   fetchUserData();
-  // }, []);
 
   const handleConfirmLogout = async () => {
     setLogoutModalVisible(false);
@@ -186,9 +82,7 @@ export default function ProfileScreen() {
             );
           }
           if (provider === 'apple') {
-            return (
-              <Ionicons key={provider} name="logo-apple" size={20} color={colors.neutral500} />
-            );
+            return <Ionicons key={provider} name="logo-apple" size={20} color={colors.neutral500} />;
           }
           if (provider === 'email') {
             return <FileText key={provider} size={20} color={colors.neutral500} />;
@@ -199,12 +93,15 @@ export default function ProfileScreen() {
     );
   };
 
+  const displayName = profile?.display_name || 'User';
+  const avatarUrl = profile?.avatar_url;
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
         {/* Header */}
-      <View style={styles.header}>
+        <View style={styles.header}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
             style={styles.backBtn}
@@ -216,41 +113,41 @@ export default function ProfileScreen() {
         </View>
 
         {/* Avatar Section */}
-       <View style={styles.avatarContainer}>
-          <View style={styles.avatarWrapper}>
+        <View style={styles.avatarContainer}>
+          <View style={[styles.avatarWrapper, { borderColor: currentTheme.color }]}>
             {avatarUrl ? (
               <Image source={{ uri: avatarUrl }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                <Text style={styles.avatarInitial}>
-                  {userName ? userName.charAt(0).toUpperCase() : 'U'}
+                <Text style={[styles.avatarInitial, { color: currentTheme.color }]}>
+                  {displayName.charAt(0).toUpperCase()}
                 </Text>
               </View>
             )}
             <TouchableOpacity 
-              style={styles.editAvatarBtn} 
+              style={[styles.editAvatarBtn, { backgroundColor: currentTheme.color }]} 
               onPress={() => navigation.navigate('EditProfile')}
             >
               <Pencil size={14} color={colors.white} />
             </TouchableOpacity>
           </View>
-          <Text style={styles.userName}>{loading ? 'Loading...' : userName}</Text>
+          <Text style={styles.userName}>{isLoadingProfile ? 'Loading...' : displayName}</Text>
           <Text style={styles.userStatus}>{!isLocked ? 'Premium Member' : 'Free Member'}</Text>
         </View>
 
         {/* Subscription Card */}
         {!isLocked && (
           <View style={styles.subCard}>
-            <View style={styles.subBadge}>
+            <View style={[styles.subBadge, { backgroundColor: currentTheme.color }]}>
               <Text style={styles.subBadgeText}>ACTIVE</Text>
             </View>
-            <Text style={styles.subTitle}>Autumn Plan 🍂</Text>
+            <Text style={styles.subTitle}>{currentTheme.name} Plan {currentTheme.emoji}</Text>
             <Text style={styles.subDetail}>Semi-Annual • $35.99 / 6 months</Text>
             <View style={styles.subDateRow}>
-              <Calendar size={14} color={colors.autumn} strokeWidth={2} />
-              <Text style={styles.subDateText}>Renews on: 12 Dec 2026</Text>
+              <Calendar size={14} color={currentTheme.color} strokeWidth={2} />
+              <Text style={[styles.subDateText, { color: currentTheme.color }]}>Renews on: 12 Dec 2026</Text>
             </View>
-            <TouchableOpacity style={styles.manageSubBtn} onPress={() => navigation.navigate('Subscription')}>
+            <TouchableOpacity style={[styles.manageSubBtn, { backgroundColor: currentTheme.color }]} onPress={() => navigation.navigate('Subscription')}>
               <Text style={styles.manageSubBtnText}>Manage Subscription</Text>
             </TouchableOpacity>
           </View>
@@ -265,14 +162,19 @@ export default function ProfileScreen() {
           <View style={styles.divider} />
           <SettingsRow 
             icon={LinkIcon} 
-            title="Linked Accounts" 
+            title="Accounts" 
             rightElement={renderProviderIcons()}
           />
         </View>
 
         <Text style={styles.sectionTitle}>PREFERENCES</Text>
         <View style={styles.cardGroup}>
-          <SettingsRow icon={Palette} title="App Theme" value="Autumn 🍂" />
+          <SettingsRow 
+            icon={Palette} 
+            title="Choose Theme" 
+            value={`${currentTheme.name} ${currentTheme.emoji}`} 
+            onPress={() => navigation.navigate('ChooseSeason')} 
+          />
         </View>
 
         <Text style={styles.sectionTitle}>SUPPORT & LEGAL</Text>
@@ -293,7 +195,7 @@ export default function ProfileScreen() {
           />
         </View>
 
-        {/* DELETE ACCOUNT TRIGGERS MODAL */}
+        {/* DELETE ACCOUNT */}
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={() => setDeleteModalVisible(true)}>
           <Text style={styles.deleteAccountText}>DELETE MY ACCOUNT</Text>
         </TouchableOpacity>
@@ -396,11 +298,11 @@ const styles = StyleSheet.create({
   headerTitle: { 
     fontFamily: 'Almarai_400Regular',
     fontSize: 22,
-    color: 'colors.neutral900',
+    color: '#1A1A1A',
   },
   /* Avatar */
   avatarContainer: { alignItems: 'center', marginBottom: 30 },
-  avatarWrapper: { position: 'relative', padding: 4, borderRadius: 60, borderWidth: 2, borderColor: colors.autumn },
+  avatarWrapper: { position: 'relative', padding: 4, borderRadius: 60, borderWidth: 2 },
   avatar: { width: 88, height: 88, borderRadius: 45 },
   avatarPlaceholder: {
     backgroundColor: 'rgba(216, 194, 186, 0.4)', 
@@ -410,24 +312,22 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontFamily: 'Inter_700Bold',
     fontSize: 36,
-    color: 'rgba(170, 131, 104, 1)', 
   },
-  editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, backgroundColor: colors.autumn, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.neutral50 },
+  editAvatarBtn: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.neutral50 },
   userName: { fontSize: 24, fontFamily: 'Inter_700Bold', color: colors.neutral900, marginTop: 16 },
   userStatus: { ...typography.bodyDefault, color: colors.neutral700, marginTop: 4 },
 
   /* Subscription Card */
   subCard: { backgroundColor: 'rgba(216, 194, 186, 0.15)' ,borderRadius: 24, padding: 24, marginBottom: 32, position: 'relative' },
-  subBadge: { position: 'absolute', top: 20, right: 20, backgroundColor: 'rgba(170, 131, 104, 1)', paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 },
+  subBadge: { position: 'absolute', top: 20, right: 20, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12 },
   subBadgeText: { fontSize: 10, fontFamily: 'Inter_700Bold', color: colors.white, textTransform: 'uppercase' },
   subTitle: { fontSize: 24, fontFamily: 'Inter_700Bold', color: colors.neutral900, marginBottom: 8 },
   subDetail: { fontSize: 16, fontFamily: 'Inter_400Regular', color: colors.neutral700, marginBottom: 8 },
   subDateRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  subDateText: { fontSize: 14, fontFamily: 'Inter_400Regular', color: colors.autumn, marginLeft: 6 },
-  manageSubBtn: { backgroundColor: 'rgba(170, 131, 104, 1)', paddingVertical: 14, borderRadius: 40, alignItems: 'center' },
+  subDateText: { fontSize: 14, fontFamily: 'Inter_400Regular', marginLeft: 6 },
+  manageSubBtn: { paddingVertical: 14, borderRadius: 40, alignItems: 'center' },
   manageSubBtnText: { ...typography.buttonText, color: colors.white },
 
-  /* Settings Lists */
  sectionTitle: { 
     fontFamily: 'Inter_400Regular', 
     fontSize: 14,                   
@@ -453,8 +353,6 @@ const styles = StyleSheet.create({
     marginRight: 8 
   },
   divider: { height: 1, backgroundColor: 'rgba(216, 194, 186, 0.05)', },
-
-  /* Delete Account */
   deleteAccountBtn: { alignItems: 'center', marginTop: 10, marginBottom: 20 },
   deleteAccountText: {    fontFamily: 'Inter_400Regular',
     fontSize: 12, color: colors.error },
@@ -490,13 +388,11 @@ const styles = StyleSheet.create({
     color: '#D32F2F',
     textTransform: 'uppercase',
   },
-
-  /* --- LOGOUT MODAL SPECIFIC --- */
   logoutIconContainer: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FCECEC', // Light red circle
+    backgroundColor: '#FCECEC', 
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -519,7 +415,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 
-  /* --- DELETE MODAL SPECIFIC --- */
   leftAlignedContent: {
     width: '100%',
     alignItems: 'flex-start',

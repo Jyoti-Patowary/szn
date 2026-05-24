@@ -11,6 +11,7 @@ import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google
 import { PlayfairDisplay_400Regular, PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
 import { SavedItemsProvider } from './src/context/SavedItemsContext';
 import { UserProfileProvider } from './src/context/UserProfileContext';
+import { ThemeProvider } from './src/context/ThemeContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AppProvider>
+        <ThemeProvider>
         <UserProfileProvider>
           <SavedItemsProvider>
             <NavigationContainer>
@@ -49,6 +51,7 @@ export default function App() {
             </NavigationContainer>
           </SavedItemsProvider>
         </UserProfileProvider>
+        </ThemeProvider>
       </AppProvider>
       <StatusBar style="auto" />
     </SafeAreaProvider>
