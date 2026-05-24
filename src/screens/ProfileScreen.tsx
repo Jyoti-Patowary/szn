@@ -17,6 +17,7 @@ import {
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+
 export default function ProfileScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const isFocused = useIsFocused();
