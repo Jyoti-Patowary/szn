@@ -1,79 +1,122 @@
-import React from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, SafeAreaView, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, Dimensions, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '../lib/supabase';
 
 const { height } = Dimensions.get('window');
 
-// Mock data for the "Shop the Look" section
-const SHOP_ITEMS = [
-  {
-    id: '1',
-    name: 'Classic Beige Trench Coat',
-    price: '$46.00',
-    image: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=400&auto=format&fit=crop',
-  },
-  {
-    id: '2',
-    name: 'Vintage Straight Leg Denim',
-    price: '$32.00',
-    image: 'https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=400&auto=format&fit=crop',
-  },
-  {
-    id: '3',
-    name: 'Ribbed Cotton Tank Top',
-    price: '$12.00',
-    image: 'https://images.unsplash.com/photo-1581044777550-4cfa60707c03?q=80&w=400&auto=format&fit=crop',
-  },
-];
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'FeaturedLook'>;
 
 export default function FeaturedLookScreen() {
   const navigation = useNavigation<NavigationProp>();
+  
+  const route = useRoute<any>();
+  const { lookId } = route.params || {};
+
+  const [lookData, setLookData] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLookAndProducts = async () => {
+      try {
+        setIsLoading(true);
+
+        const { data: look, error: lookError } = await supabase
+          .from('catalog_looks')
+          .select('*')
+          .eq('id', lookId)
+          .single();
+
+        if (lookError) throw lookError;
+        setLookData(look);
+
+        const { data: itemsData, error: itemsError } = await supabase
+          .from('catalog_look_items')
+          .select(`
+            sort_order,
+            product:catalog_products (*)
+          `)
+          .eq('look_id', lookId)
+          .order('sort_order', { ascending: true });
+
+        if (itemsError) throw itemsError;
+
+        if (itemsData) {
+          const mappedProducts = itemsData.map((item: any) => item.product);
+          setProducts(mappedProducts);
+        }
+      } catch (error) {
+        console.error("Error fetching featured look details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (lookId) {
+      fetchLookAndProducts();
+    }
+  }, [lookId]);
 
   return (
     <View style={styles.container}>
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
-        
-        {/* --- HERO IMAGE --- */}
-        <Image 
-          source={{ uri: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1000&auto=format&fit=crop' }}
-          style={styles.heroImage}
-        />
-
-        {/* --- BOTTOM SHEET CONTENT --- */}
-        <View style={styles.contentContainer}>
-          <Text style={styles.title}>Beige Trench and Denim</Text>
-          <Text style={styles.description}>
-            Effortless autumn layering with soft neutrals and timeless denim. A silhouette designed for the transitioning seasons.
-          </Text>
-
-          <Text style={styles.sectionTitle}>Shop the Look</Text>
-
-          {/* Shop Items List */}
-          {SHOP_ITEMS.map((item) => (
-            <TouchableOpacity key={item.id} style={styles.shopItem} activeOpacity={0.7}>
-              <Image source={{ uri: item.image }} style={styles.itemImage} />
-              
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemPrice}>{item.price}</Text>
-              </View>
-
-              <Ionicons name="chevron-forward" size={20} color="#C4C4C4" />
-            </TouchableOpacity>
-          ))}
-          
-          {/* Bottom Padding */}
-          <View style={{ height: 40 }} />
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#9C5E33" />
         </View>
-      </ScrollView>
+      ) : (
+        <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+          <Image 
+            source={{ uri: lookData?.render_image_url || FALLBACK_IMAGE }}
+            style={styles.heroImage}
+          />
 
-      {/* --- FLOATING HEADER BUTTONS --- */}
-      <SafeAreaView style={styles.floatingHeader}>
+          <View style={styles.contentContainer}>
+            <Text style={styles.title}>{lookData?.name || 'Curated Style'}</Text>
+            <Text style={styles.description}>
+              {lookData?.description || 'Effortless layering with soft neutrals and timeless pieces. A silhouette designed for the transitioning seasons.'}
+            </Text>
+
+            <Text style={styles.sectionTitle}>Shop the Look</Text>
+
+            {products.map((item) => {
+              const imgUrl = item.listing_image_url || (item.image_urls && item.image_urls[0]) || FALLBACK_IMAGE;
+              
+              return (
+                <TouchableOpacity 
+                  key={item.id} 
+                  style={styles.shopItem} 
+                  activeOpacity={0.7}
+                  onPress={() => (navigation.navigate as any)('ProductDetail', { product: item })}
+                >
+                  <Image source={{ uri: imgUrl }} style={styles.itemImage} />
+                  
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+                    <Text style={styles.itemPrice}>{item.price || 'TBA'}</Text>
+                  </View>
+
+                  <Ionicons name="chevron-forward" size={20} color="#C4C4C4" />
+                </TouchableOpacity>
+              );
+            })}
+
+            {products.length === 0 && (
+              <Text style={{ color: '#888', fontStyle: 'italic', marginTop: 10 }}>No products found for this look.</Text>
+            )}
+            
+            <View style={{ height: 40 }} />
+          </View>
+        </ScrollView>
+      )}
+
+      <SafeAreaView style={styles.floatingHeader} edges={['top']}>
         <View style={styles.headerRow}>
           <TouchableOpacity 
             style={styles.iconButton} 
@@ -94,11 +137,16 @@ export default function FeaturedLookScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5EBE1', // Matching your beige theme
+    backgroundColor: '#F5EBE1',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   heroImage: {
     width: '100%',
-    height: height * 0.55, // Takes up 55% of the screen height
+    height: height * 0.55, 
   },
   floatingHeader: {
     position: 'absolute',
@@ -126,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5EBE1',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    marginTop: -32, // This pulls the sheet up over the image!
+    marginTop: -32, 
     paddingHorizontal: 24,
     paddingTop: 32,
     minHeight: height * 0.5,
@@ -165,6 +213,7 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
     justifyContent: 'center',
+    paddingRight: 10, 
   },
   itemName: {
     fontFamily: 'Inter_400Regular',
@@ -175,6 +224,6 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontFamily: 'Inter_600SemiBold',
     fontSize: 14,
-    color: '#9C5E33', // Brown price color from the design
+    color: '#9C5E33',
   },
 });

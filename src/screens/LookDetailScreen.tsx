@@ -274,7 +274,7 @@ export default function LookDetailScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#F7F3EE' 
+    backgroundColor: '#e6e3dd' 
   },
   header: {
     paddingHorizontal: 20,

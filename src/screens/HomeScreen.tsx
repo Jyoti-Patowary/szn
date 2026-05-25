@@ -14,6 +14,7 @@ import CustomModal from '../components/CustomModal';
 import { supabase } from '../lib/supabase';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUserProfile } from '../context/UserProfileContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 40;
@@ -21,24 +22,12 @@ const CAROUSEL_GAP = 16;
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
 
-const STATIC_PICKS = [
-  {
-    id: 'pick-1',
-    title: 'Summer Makeup',
-    image: require('../../assets/summer.jpg')
-  },
-  {
-    id: 'pick-2',
-    title: 'Autumn Accessories',
-    image: require('../../assets/autumn.jpg')
-  }
-];
-
 export default function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { timeLeft, isLocked } = useAppContext();
 
   const { profile } = useUserProfile();
+  const { currentTheme } = useTheme();
 
   const firstName = profile?.display_name ? profile.display_name.split(' ')[0] : '';
   const avatarUrl = profile?.avatar_url;
@@ -47,7 +36,11 @@ export default function HomeScreen() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const [featuredLooks, setFeaturedLooks] = useState<any[]>([]);
+  const [seasonalPicks, setSeasonalPicks] = useState<any[]>([]);
+  const [coordPicks, setCoordPicks] = useState<any[]>([]);
+  
   const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
+  const [isLoadingPicks, setIsLoadingPicks] = useState(true);
 
   const isTrialEnded = timeLeft <= 0;
   const showLockOverlay = isLocked;
@@ -97,11 +90,106 @@ export default function HomeScreen() {
     fetchRandomFeaturedLooks();
   }, []);
 
+ useEffect(() => {
+    const fetchDynamicPicks = async () => {
+      setIsLoadingPicks(true);
+      try {
+        const currentSeasonName = currentTheme?.id?.toLowerCase() || 'autumn';
+
+        const { data: seasonData, error: seasonError } = await supabase
+          .from('catalog_products')
+          .select('product_type, listing_image_url, image_urls')
+          .contains('seasons', [currentSeasonName]) 
+          .limit(50); 
+
+        if (!seasonError && seasonData) {
+          const categoryMap = new Map();
+
+          seasonData.forEach(p => {
+            const type = p.product_type;
+            if (type && !categoryMap.has(type)) {
+              const imgUrl = p.listing_image_url || (p.image_urls && p.image_urls[0]) || FALLBACK_IMAGE;
+              categoryMap.set(type, imgUrl);
+            }
+          });
+
+          const generatedSeasonalPicks = Array.from(categoryMap.entries())
+            .map(([type, imgUrl]) => ({
+              id: type, 
+              title: `${currentTheme?.name || 'Autumn'} ${type}`, 
+              image: { uri: imgUrl }
+            }))
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 4);
+
+          setSeasonalPicks(generatedSeasonalPicks);
+        }
+
+       const { data: coordData, error: coordError } = await supabase
+          .from('catalog_products')
+          .select('id, name, product_tags, listing_image_url, image_urls')
+          .or('product_type.ilike.%co-ord%,product_type.ilike.%set%,name.ilike.%co-ord%,name.ilike.%set%')
+          .limit(100); 
+
+        if (!coordError && coordData) {
+          const coordTagMap = new Map();
+
+          coordData.forEach(p => {
+            let tags: string[] = [];
+            
+            if (Array.isArray(p.product_tags)) {
+              tags = p.product_tags;
+            } else if (typeof p.product_tags === 'string') {
+              try { tags = JSON.parse(p.product_tags); } catch(e){}
+            }
+
+            tags.forEach(tag => {
+              if (tag && tag.toLowerCase().includes(currentSeasonName)) {
+                if (!coordTagMap.has(tag)) {
+                  const imgUrl = p.listing_image_url || (p.image_urls && p.image_urls[0]) || FALLBACK_IMAGE;
+                  coordTagMap.set(tag, imgUrl);
+                }
+              }
+            });
+          });
+
+          const generatedCoordPicks = Array.from(coordTagMap.entries())
+            .map(([tag, imgUrl]) => ({
+              id: `coord_tag_${tag}`,
+              title: `${tag} Sets`,
+              image: { uri: imgUrl }
+            }))
+            .sort(() => 0.5 - Math.random())
+            .slice(0, 4);
+
+          if (generatedCoordPicks.length === 0 && coordData.length > 0) {
+            const fallbackPicks = coordData.slice(0, 4).map((p: any, idx: number) => ({
+              id: 'co-ords',
+              title: 'Matching Sets',
+              image: { uri: p.listing_image_url || (p.image_urls && p.image_urls[0]) || FALLBACK_IMAGE }
+            }));
+            setCoordPicks(fallbackPicks);
+          } else {
+            setCoordPicks(generatedCoordPicks);
+          }
+        }
+
+      } catch (err) {
+        console.error("Error fetching dynamic picks:", err);
+      } finally {
+        setIsLoadingPicks(false);
+      }
+    };
+
+    fetchDynamicPicks();
+  }, [currentTheme.id]);
+
   const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const slideIndex = Math.round(scrollPosition / (CARD_WIDTH + CAROUSEL_GAP));
     setCurrentSlide(slideIndex);
   };
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -127,7 +215,7 @@ export default function HomeScreen() {
                 <Text style={styles.subtitle}>Curated looks inspired by the season</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.notificationBtn}>
+            <TouchableOpacity style={[styles.notificationBtn, { backgroundColor: currentTheme.color }]}>
               <Ionicons name="notifications-outline" size={20} color="#FFF" />
             </TouchableOpacity>
           </View>
@@ -185,7 +273,7 @@ export default function HomeScreen() {
                       { marginRight: index === featuredLooks.length - 1 ? 0 : CAROUSEL_GAP }
                     ]}
                     activeOpacity={0.9}
-                    onPress={() => navigation.navigate('LookDetail', { lookId: look.id })}
+                    onPress={() => (navigation.navigate as any)('FeaturedLook', { lookId: look.id })}
                     disabled={showLockOverlay}
                   >
                     <ImageBackground
@@ -222,75 +310,89 @@ export default function HomeScreen() {
           <View style={styles.innerContentPadding}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Seasonal Picks</Text>
-              <TouchableOpacity disabled={showLockOverlay} onPress={() => navigation.navigate('CategoryList', { categoryId: 'seasonal_picks' })}>
-                <Text style={styles.viewAllText}>View all</Text>
+              <TouchableOpacity disabled={showLockOverlay} onPress={() => navigation.navigate('CategoryList', { categoryId: `seasonal_${currentTheme?.id || 'autumn'}` })}>
+                <Text style={[styles.viewAllText, { color: currentTheme?.color || '#AA8368' }]}>View all</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}
-            scrollEnabled={!showLockOverlay}
-          >
-            <View style={{ width: 20 }} />
-            {STATIC_PICKS.map((pick) => (
-              <TouchableOpacity
-                key={pick.id}
-                activeOpacity={0.8}
-                disabled={showLockOverlay}
-                onPress={() => navigation.navigate('CategoryList', { categoryId: pick.id })}
-              >
-                <ImageBackground
-                  source={pick.image}
-                  style={styles.pickCard}
-                  imageStyle={{ borderRadius: 16 }}
+          {isLoadingPicks ? (
+             <View style={{ height: 152, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={currentTheme?.color || '#A67B5B'} />
+             </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+              scrollEnabled={!showLockOverlay}
+            >
+              <View style={{ width: 20 }} />
+              {seasonalPicks.map((pick) => (
+                <TouchableOpacity
+                  key={pick.id}
+                  activeOpacity={0.8}
+                  disabled={showLockOverlay}
+                  onPress={() => navigation.navigate('CategoryList', { categoryId: pick.id })}
                 >
-                  <View style={styles.pickOverlay} />
-                  <Text style={styles.pickTitle} numberOfLines={2}>{pick.title}</Text>
-                </ImageBackground>
-              </TouchableOpacity>
-            ))}
-            <View style={{ width: 4 }} />
-          </ScrollView>
+                  <ImageBackground
+                    source={pick.image}
+                    style={styles.pickCard}
+                    imageStyle={{ borderRadius: 16 }}
+                  >
+                    <View style={styles.pickOverlay} />
+                    <Text style={styles.pickTitle} numberOfLines={2}>{pick.title}</Text>
+                  </ImageBackground>
+                </TouchableOpacity>
+              ))}
+              <View style={{ width: 4 }} />
+            </ScrollView>
+          )}
 
-          {/* --- WEEKLY PICKS SECTION --- */}
+          
+
+          {/* --- WEEKLY PICKS SECTION (CO-ORD SETS) --- */}
           <View style={[styles.innerContentPadding, { marginTop: 24 }]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Weekly Picks</Text>
-              <TouchableOpacity disabled={showLockOverlay} onPress={() => navigation.navigate('CategoryList', { categoryId: 'weekly_picks' })}>
-                <Text style={styles.viewAllText}>View all</Text>
+              <Text style={styles.sectionTitle}>CO-ORD Sets</Text>
+              <TouchableOpacity disabled={showLockOverlay} onPress={() => navigation.navigate('CategoryList', { categoryId: 'co-ords' })}>
+                <Text style={[styles.viewAllText, { color: currentTheme?.color || '#AA8368' }]}>View all</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalScroll}
-            scrollEnabled={!showLockOverlay}
-          >
-            <View style={{ width: 20 }} />
-            {STATIC_PICKS.map((pick) => (
-              <TouchableOpacity
-                key={`weekly-${pick.id}`}
-                activeOpacity={0.8}
-                disabled={showLockOverlay}
-                onPress={() => navigation.navigate('CategoryList', { categoryId: pick.id })}
-              >
-                <ImageBackground
-                  source={pick.image}
-                  style={styles.pickCard}
-                  imageStyle={{ borderRadius: 16 }}
+          {isLoadingPicks ? (
+             <View style={{ height: 152, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={currentTheme?.color || '#A67B5B'} />
+             </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.horizontalScroll}
+              scrollEnabled={!showLockOverlay}
+            >
+              <View style={{ width: 20 }} />
+              {coordPicks.map((pick, idx) => (
+                <TouchableOpacity
+                  key={`coord-${idx}`}
+                  activeOpacity={0.8}
+                  disabled={showLockOverlay}
+                  onPress={() => navigation.navigate('CategoryList', { categoryId: pick.id })}
                 >
-                  <View style={styles.pickOverlay} />
-                  <Text style={styles.pickTitle} numberOfLines={2}>{pick.title}</Text>
-                </ImageBackground>
-              </TouchableOpacity>
-            ))}
-            <View style={{ width: 4 }} />
-          </ScrollView>
+                  <ImageBackground
+                    source={pick.image}
+                    style={styles.pickCard}
+                    imageStyle={{ borderRadius: 16 }}
+                  >
+                    <View style={styles.pickOverlay} />
+                    <Text style={styles.pickTitle} numberOfLines={2}>{pick.title}</Text>
+                  </ImageBackground>
+                </TouchableOpacity>
+              ))}
+              <View style={{ width: 4 }} />
+            </ScrollView>
+          )}
 
           {/* --- BLUR & LOCK OVERLAY --- */}
           {showLockOverlay && (
@@ -420,8 +522,8 @@ const styles = StyleSheet.create({
   activeDot: { width: 24, backgroundColor: '#A67B5B' },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  sectionTitle: { fontSize: 22, fontFamily: 'Almarai_400Regular', color: '#333' },
-  viewAllText: { fontSize: 14, color: 'rgba(170, 131, 104, 1)', fontFamily: 'Almarai_400Regular' },
+  sectionTitle: { fontSize: 22, fontFamily: 'Almarai_400Regular', color: '#2E2E2E' },
+  viewAllText: { fontSize: 14, color: '#AA8368', fontFamily: 'Almarai_400Regular' },
   horizontalScroll: { paddingBottom: 10 },
   pickCard: {
     width: 170,

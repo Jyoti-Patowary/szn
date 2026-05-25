@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
-  View, Text, StyleSheet, TouchableOpacity, 
-  SafeAreaView, Platform, ScrollView, Linking 
+  View, Text, StyleSheet, TouchableOpacity, Platform, ScrollView, Linking 
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Mail, ChevronRight } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function HelpSupportScreen() {
   const navigation = useNavigation();
@@ -16,8 +16,7 @@ export default function HelpSupportScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* Header */}
+
         <View style={styles.header}>
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
@@ -29,7 +28,6 @@ export default function HelpSupportScreen() {
           <Text style={styles.headerTitle}>Help & Support</Text>
         </View>
 
-        {/* Hero Text */}
         <View style={styles.heroSection}>
           <Text style={styles.heroTitle}>Need Help?</Text>
           <Text style={styles.heroTitle}>We're here for you.</Text>
@@ -38,7 +36,6 @@ export default function HelpSupportScreen() {
           </Text>
         </View>
 
-        {/* Contact Support Card */}
         <View style={styles.contactCard}>
           <View style={styles.iconCircle}>
             <Mail size={24} color="#A67B5B" strokeWidth={1.5} />
@@ -71,18 +68,15 @@ export default function HelpSupportScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F8F6F2' },
   scrollContent: { paddingHorizontal: 20, paddingTop: Platform.OS === 'android' ? 40 : 10, paddingBottom: 40 },
-  
-  /* Header */
+
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
   backBtn: { padding: 8, borderWidth: 1, borderColor: '#E8E5E0', borderRadius: 12, backgroundColor: '#FFFFFF', marginRight: 16 },
   headerTitle: { fontFamily: 'Inter_400Regular', fontSize: 20, color: '#1A1A1A' },
 
-  /* Hero Section */
   heroSection: { marginBottom: 32 },
   heroTitle: { fontFamily: 'Inter_400Regular', fontSize: 26, color: '#1A1A1A', marginBottom: 4 },
   heroSubtitle: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#666666', marginTop: 12, lineHeight: 22, paddingRight: 20 },
 
-  /* Contact Card */
   contactCard: { backgroundColor: '#EFEAE3', borderRadius: 24, padding: 24, alignItems: 'center', marginBottom: 32 },
   iconCircle: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E4DDD4', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   cardTitle: { fontFamily: 'Inter_500Medium', fontSize: 18, color: '#1A1A1A', marginBottom: 4 },
@@ -90,7 +84,6 @@ const styles = StyleSheet.create({
   emailBtn: { backgroundColor: '#A67B5B', width: '100%', height: 50, borderRadius: 25, justifyContent: 'center', alignItems: 'center' },
   emailBtnText: { fontFamily: 'Inter_600SemiBold', fontSize: 15, color: '#FFFFFF' },
 
-  /* Resources List */
   sectionTitle: { fontFamily: 'Inter_500Medium', fontSize: 13, color: '#333333', textTransform: 'uppercase', marginBottom: 16, letterSpacing: 0.5 },
   resourceCard: { backgroundColor: '#F2ECE5', borderRadius: 20, paddingHorizontal: 20, paddingVertical: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   resourceText: { fontFamily: 'Inter_400Regular', fontSize: 15, color: '#1A1A1A' },

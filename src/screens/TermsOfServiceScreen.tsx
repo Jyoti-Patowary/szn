@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TermsOfServiceScreen() {
   const navigation = useNavigation();
 
-  // Helper component for bullet points
   const BulletPoint = ({ children }: { children: React.ReactNode }) => (
     <View style={styles.bulletRow}>
       <Text style={styles.bullet}>•</Text>
@@ -16,7 +16,7 @@ export default function TermsOfServiceScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* --- HEADER --- */}
+
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={20} color="#333" />
