@@ -103,7 +103,7 @@ export type RootStackParamList = {
   Splash: undefined;
   Auth: undefined;
   Main: undefined;
-  ChooseSeason: undefined;
+  ChooseSeason: { fromProfile?: boolean } | undefined;
   Subscription: undefined;
   Profile: undefined;
   FeaturedLook: undefined;

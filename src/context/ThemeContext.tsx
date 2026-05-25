@@ -13,6 +13,7 @@ export const SEASONS: Record<string, SeasonTheme> = {
   winter: { id: 'winter', name: 'Winter', emoji: '❄️', color: '#3E3F41' },
   spring: { id: 'spring', name: 'Spring', emoji: '🌸', color: '#B69EDD' },
   summer: { id: 'summer', name: 'Summer', emoji: '☀️', color: '#75B1F9' },
+  all: { id: 'all', name: 'All Seasons', emoji: '🌍', color: '#333333' },
 };
 
 type ThemeContextType = {
@@ -22,7 +23,7 @@ type ThemeContextType = {
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  currentTheme: SEASONS.autumn, // Default
+  currentTheme: SEASONS.autumn,
   changeTheme: async () => {},
   isLoadingTheme: true,
 });

@@ -174,7 +174,7 @@ export default function ProfileScreen() {
             icon={Palette} 
             title="Choose Theme" 
             value={`${currentTheme.name} ${currentTheme.emoji}`} 
-            onPress={() => navigation.navigate('ChooseSeason')} 
+            onPress={() => navigation.navigate('ChooseSeason', { fromProfile: true })}
           />
         </View>
 

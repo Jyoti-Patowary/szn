@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Platform, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 
-// Mock data matching your design
+type ChooseSeasonRouteProp = RouteProp<RootStackParamList, 'ChooseSeason'>;
+
 const SEASONS = [
   { id: 'spring', title: 'Spring', image: require('../../assets/spring-season.jpg') },
   { id: 'summer', title: 'Summer', image: require('../../assets/summer-season.png') },
@@ -16,12 +19,20 @@ const SEASONS = [
 
 export default function ChooseSeasonScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<ChooseSeasonRouteProp>();
+  const { changeTheme } = useTheme();
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
 
-  const handleContinue = () => {
+  const fromProfile = route.params?.fromProfile;
+
+  const handleContinue = async () => { // <-- Added async
     if (selectedSeason) {
-      // Once they choose, move them to the actual Subscription payment screen
-      navigation.navigate('Subscription');
+      if (fromProfile) {
+        await changeTheme(selectedSeason); 
+        navigation.goBack(); 
+      } else {
+        navigation.navigate('Subscription');
+      }
     }
   };
 
@@ -46,7 +57,7 @@ export default function ChooseSeasonScreen() {
                 key={season.id}
                 style={[
                   styles.card,
-                  isSelected && styles.cardSelected // Applies brown border if selected
+                  isSelected && styles.cardSelected
                 ]}
                 activeOpacity={0.9}
                 onPress={() => setSelectedSeason(season.id)}
@@ -54,7 +65,6 @@ export default function ChooseSeasonScreen() {
                 <View style={styles.imageContainer}>
                   <Image source={season.image} style={styles.cardImage} resizeMode="cover"/>
                   
-                  {/* Checkmark Overlay */}
                   {isSelected && (
                     <View style={styles.checkmarkBadge}>
                       <Ionicons name="checkmark-circle" size={24} color="#A67B5B" />
@@ -73,9 +83,9 @@ export default function ChooseSeasonScreen() {
         <TouchableOpacity 
           style={[styles.continueBtn, !selectedSeason && styles.continueBtnDisabled]}
           onPress={handleContinue}
-          disabled={!selectedSeason} // Button is dead until they pick one!
+          disabled={!selectedSeason} 
         >
-          <Text style={styles.continueBtnText}>Continue</Text>
+          <Text style={styles.continueBtnText}>{fromProfile ? 'Apply Theme' : 'Continue'}</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -85,7 +95,7 @@ export default function ChooseSeasonScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5EBE1', // Matches app theme
+    backgroundColor: '#F5EBE1', 
   },
   header: {
     flexDirection: 'row',
@@ -95,7 +105,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginRight: 16,
-    marginTop: 2, // Aligns icon slightly better with the large text
+    marginTop: 2, 
   },
   headerTextContainer: {
     flex: 1,
@@ -121,10 +131,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    gap: 16, // Adds perfect spacing between grid items
+    gap: 16,
   },
   card: {
-    width: '47%', // Allows two side-by-side with gap
+    width: '47%',
     backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 12,
@@ -135,15 +145,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-    marginBottom: 16, // Fallback for older RN versions without gap support
+    marginBottom: 16, 
   },
   cardSelected: {
-    borderColor: '#A67B5B', // Brown outline when selected
+    borderColor: '#A67B5B', 
   },
   imageContainer: {
     position: 'relative',
     width: '100%',
-    aspectRatio: 1, // Keeps image perfectly square
+    aspectRatio: 1,
     marginBottom: 12,
   },
   cardImage: {
@@ -155,7 +165,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: '#FFF', // White circle behind the icon
+    backgroundColor: '#FFF', 
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -171,7 +181,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#F5EBE1', // Matches background
+    backgroundColor: '#F5EBE1',
   },
   continueBtn: {
     backgroundColor: '#A67B5B',
@@ -181,7 +191,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueBtnDisabled: {
-    backgroundColor: '#D1C4B8', // Faded brown when unclickable
+    backgroundColor: '#D1C4B8',
   },
   continueBtnText: {
     fontFamily: 'Inter_600SemiBold',

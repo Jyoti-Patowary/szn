@@ -25,7 +25,10 @@
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "pan",
       "predictiveBackGestureEnabled": false,
-      "permissions": ["com.android.vending.BILLING", "...other permissions"],
+      "permissions": [
+        "com.android.vending.BILLING",
+        "...other permissions"
+      ],
       "package": "com.yourszn.app"
     },
     "web": {
@@ -34,7 +37,13 @@
     "plugins": [
       "expo-font",
       "expo-web-browser",
-      "react-native-iap"
+      "react-native-iap",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.qla93oom9rfmm99poubhrcc5nrbv8aeu-149193478854"
+        }
+      ]
     ],
     "extra": {
       "eas": {

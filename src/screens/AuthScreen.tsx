@@ -12,6 +12,7 @@ import { Mail, Eye, EyeOff } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons'; 
 import * as AppleAuthentication from 'expo-apple-authentication';
 import BottomCard from '../components/BottomCard';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 type AuthState = 'welcome_options' | 'sign_in' | 'sign_up' | 'forgot_password';
 
@@ -47,6 +48,38 @@ export default function AuthScreen() {
     setPasswordError('');
     setConfirmError('');
   };
+
+//   GoogleSignin.configure({
+//   webClientId: '458874391941-477qg71gavhhd0ad2mih34a96dsq15ko.apps.googleusercontent.com',
+//   });
+
+//   async function signInWithGoogleNative() {
+//   setLoading(true);
+//   try {
+//     await GoogleSignin.hasPlayServices();
+//     const userInfo = await GoogleSignin.signIn();
+
+//     const idToken = userInfo.data?.idToken || (userInfo as any).idToken;
+
+//     if (idToken) {
+//       const { error } = await supabase.auth.signInWithIdToken({
+//         provider: 'google',
+//         token: idToken,
+//       });
+
+//       if (error) throw error;
+//     } else {
+//       throw new Error('No ID token found.');
+//     }
+//   } catch (error: any) {
+//     console.error(error);
+//     if (error.code !== 'SIGN_IN_CANCELLED') {
+//       Alert.alert('Google Sign In Failed', error.message);
+//     }
+//   } finally {
+//     setLoading(false);
+//   }
+// }
 
   async function signInWithAppleNative() {
   setLoading(true);
@@ -252,9 +285,11 @@ export default function AuthScreen() {
           <Text style={[styles.socialButtonText, { color: colors.white }]}>Continue with Apple</Text>
         </TouchableOpacity>
       )}
-
+{/* 
+      <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.white }]} onPress={signInWithGoogleNative}
+        disabled={loading}>  */}
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.white }]} onPress={() => signInWithSocial('google')}
-        disabled={loading}> 
+        disabled={loading}>
         <Image 
           source={require('../../assets/Google-Logo.png')} 
           style={styles.socialImage} 
