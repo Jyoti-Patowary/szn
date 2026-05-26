@@ -79,7 +79,6 @@ export default function ChooseSeasonScreen() {
         </View>
       </ScrollView>
 
-      {/* Fixed Bottom Button */}
       <View style={styles.footer}>
         <TouchableOpacity 
           style={[styles.continueBtn, !selectedSeason && styles.continueBtnDisabled, { backgroundColor: selectedSeason ? themeColor : '#D1C4B8' }]}

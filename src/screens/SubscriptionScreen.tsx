@@ -26,6 +26,12 @@ const SKU_MONTHLY = Platform.OS === 'ios' ? 'yourszn_monthly' : 'yourszn_gp_mont
 const SKU_SEMI_ANNUAL = Platform.OS === 'ios' ? 'yourszn_semi' : 'yourszn_gp_semi';
 const SKU_ANNUAL = Platform.OS === 'ios' ? 'yourszn_annual' : 'yourszn_gp_annual';
 
+const planConfigs = {
+  'monthly': { title: 'Monthly Plan', subtitle: 'Flexible • $14.99 / month' },
+  'semi-annual': { title: 'Semi-Annual Plan', subtitle: 'Popular • $35.99 / 6 months' },
+  'annual': { title: 'Annual Plan', subtitle: 'Best Value • $99.99 / year' }
+};
+
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setTimeLeft, setIsLocked } = useAppContext();
@@ -37,27 +43,20 @@ export default function SubscriptionScreen() {
   const [selectedPlan, setSelectedPlan] = useState('semi-annual');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Listeners for Apple/Google Callbacks
   const purchaseUpdateSubscription = useRef<any>(null);
   const purchaseErrorSubscription = useRef<any>(null);
 
   // useEffect(() => {
-  //   // Initialize connection to Apple/Google on screen load
   //   initConnection().catch(console.warn);
 
-  //   // Listen for Successful Purchases
   //   purchaseUpdateSubscription.current = purchaseUpdatedListener(
   //     async (purchase: Purchase) => {
-  //       try {
-  //         // ✅ FIX: Use transactionId for v12 compatibility across iOS and Android
-  //         if (purchase.transactionId) {
-            
-  //           // 1. Determine which tier they actually bought based on the SKU
+  //       try {        
+  //         if (purchase.transactionId) {       
   //           let tier = 'monthly';
   //           if (purchase.productId === SKU_SEMI_ANNUAL) tier = 'semi-annual';
   //           if (purchase.productId === SKU_ANNUAL) tier = 'annual';
 
-  //           // 2. Save to Supabase
   //           const { data: { user } } = await supabase.auth.getUser();
   //           if (user) {
   //             const now = new Date();
@@ -86,10 +85,8 @@ export default function SubscriptionScreen() {
   //             if (error) throw error;
   //           }
 
-  //           // 3. Tell Apple/Google the transaction is complete
   //           await finishTransaction({ purchase, isConsumable: false });
 
-  //           // 4. Unlock App UI
   //           await AsyncStorage.setItem('@is_subscribed', 'true');
   //           setTimeLeft(0);
   //           setIsLocked(false);
@@ -108,11 +105,9 @@ export default function SubscriptionScreen() {
   //     }
   //   );
 
-  //   // Listen for Errors or User Cancellations
   //   purchaseErrorSubscription.current = purchaseErrorListener(
   //     (error: PurchaseError) => {
   //       setIsProcessing(false);
-  //       // ✅ FIX: Added missing opening curly brace
   //       if (error.code !== ErrorCode.UserCancelled) {
   //         Alert.alert("Payment Failed", "There was an issue processing your subscription.");
   //       }
@@ -125,18 +120,17 @@ export default function SubscriptionScreen() {
   //   };
   // }, []);
 
-// Trigger Real Apple/Google Pay Sheet
+
   const handlePlanClick = async (planId: string, sku: string) => {
     setSelectedPlan(planId);
     setIsProcessing(true);
     
     // try {
-    //   // ✅ FIX: react-native-iap v14 requires the new "request" and "type" structure!
     //   await requestPurchase({
     //     request: Platform.OS === 'ios' 
     //       ? { apple: { sku } } 
     //       : { android: { skus: [sku] } },
-    //     type: 'subs' // Tells the library we are purchasing a subscription
+    //     type: 'subs'
     //   });
     // } catch (err: any) {
     //   console.warn(err);
