@@ -211,9 +211,9 @@ const styles = StyleSheet.create({
   topNavRow: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10 },
   iconBtn: {
     width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.25)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center',
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.17, shadowRadius: 3.05, elevation: 4
+    // shadowColor: "#000000",
+    // shadowOffset: { width: 0, height: 3 },
+    // shadowOpacity: 0.17, shadowRadius: 3.05, elevation: 4
   },
   thumbnailsContainer: { position: 'absolute', right: 20, top: SCREEN_HEIGHT * 0.35, backgroundColor: 'rgba(255,255,255,0.5)', padding: 6, borderRadius: 12 },
   thumbnailWrapper: { width: 48, height: 64, borderRadius: 8, marginBottom: 8, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
