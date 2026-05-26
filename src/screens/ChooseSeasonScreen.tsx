@@ -21,11 +21,12 @@ export default function ChooseSeasonScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<ChooseSeasonRouteProp>();
   const { changeTheme } = useTheme();
+  const themeColor = useTheme().currentTheme.color || '#A67B5B';
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
 
   const fromProfile = route.params?.fromProfile;
 
-  const handleContinue = async () => { // <-- Added async
+  const handleContinue = async () => { 
     if (selectedSeason) {
       if (fromProfile) {
         await changeTheme(selectedSeason); 
@@ -57,7 +58,7 @@ export default function ChooseSeasonScreen() {
                 key={season.id}
                 style={[
                   styles.card,
-                  isSelected && styles.cardSelected
+                  isSelected && { borderColor: themeColor }
                 ]}
                 activeOpacity={0.9}
                 onPress={() => setSelectedSeason(season.id)}
@@ -67,7 +68,7 @@ export default function ChooseSeasonScreen() {
                   
                   {isSelected && (
                     <View style={styles.checkmarkBadge}>
-                      <Ionicons name="checkmark-circle" size={24} color="#A67B5B" />
+                      <Ionicons name="checkmark-circle" size={24} color={themeColor} />
                     </View>
                   )}
                 </View>
@@ -81,7 +82,7 @@ export default function ChooseSeasonScreen() {
       {/* Fixed Bottom Button */}
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={[styles.continueBtn, !selectedSeason && styles.continueBtnDisabled]}
+          style={[styles.continueBtn, !selectedSeason && styles.continueBtnDisabled, { backgroundColor: selectedSeason ? themeColor : '#D1C4B8' }]}
           onPress={handleContinue}
           disabled={!selectedSeason} 
         >
@@ -146,9 +147,6 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
     marginBottom: 16, 
-  },
-  cardSelected: {
-    borderColor: '#A67B5B', 
   },
   imageContainer: {
     position: 'relative',
