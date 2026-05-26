@@ -9,12 +9,16 @@ import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
+import { useTheme } from '../context/ThemeContext';
 
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
 
 export default function WishlistScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [activeTab, setActiveTab] = useState<'Catalogue' | 'Saved Looks'>('Catalogue');
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5A';
   
   const [savedProducts, setSavedProducts] = useState<any[]>([]);
   const [savedLooks, setSavedLooks] = useState<any[]>([]);
@@ -125,7 +129,7 @@ export default function WishlistScreen() {
           style={styles.heartButton}
           onPress={() => handleRemove(item.saveId, 'product')}
         >
-          <Ionicons name="heart" size={18} color="#AA8368" />
+          <Ionicons name="heart" size={18} color={themeColor} />
         </TouchableOpacity>
       </View>
       <View style={styles.productInfo}>
@@ -146,7 +150,7 @@ export default function WishlistScreen() {
           style={styles.heartButton}
           onPress={() => handleRemove(item.saveId, 'look')}
         >
-          <Ionicons name="heart" size={18} color="#AA8368" />
+          <Ionicons name="heart" size={18} color={themeColor} />
         </TouchableOpacity>
       </View>
       <View style={styles.productInfo}>
@@ -165,18 +169,26 @@ export default function WishlistScreen() {
 
       <View style={styles.toggleContainer}>
         <TouchableOpacity
-          style={[styles.toggleButton, activeTab === 'Catalogue' && styles.toggleButtonActive]}
+          style={[styles.toggleButton, activeTab === 'Catalogue' && styles.toggleButtonActive,
+              { backgroundColor: activeTab === 'Catalogue' ? themeColor : 'transparent' }
+          ]}
           onPress={() => setActiveTab('Catalogue')}
         >
-          <Text style={[styles.toggleButtonText, activeTab === 'Catalogue' && styles.toggleButtonTextActive]}>
+          <Text style={[styles.toggleButtonText, activeTab === 'Catalogue' && styles.toggleButtonTextActive,
+              { color: activeTab === 'Catalogue' ? '#FFF' : themeColor }
+          ]}>
             Catalogue
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.toggleButton, activeTab === 'Saved Looks' && styles.toggleButtonActive]}
+          style={[styles.toggleButton, activeTab === 'Saved Looks' && styles.toggleButtonActive,
+              { backgroundColor: activeTab === 'Saved Looks' ? themeColor : 'transparent' }
+          ]}
           onPress={() => setActiveTab('Saved Looks')}
         >
-          <Text style={[styles.toggleButtonText, activeTab === 'Saved Looks' && styles.toggleButtonTextActive]}>
+          <Text style={[styles.toggleButtonText, activeTab === 'Saved Looks' && styles.toggleButtonTextActive,
+              { color: activeTab === 'Saved Looks' ? '#FFF' : themeColor }
+          ]}>
             Saved Looks
           </Text>
         </TouchableOpacity>

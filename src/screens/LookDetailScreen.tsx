@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ArrowLeft, ArrowUpRight } from 'lucide-react-native';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
@@ -26,6 +27,10 @@ type LookItem = {
 export default function LookDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<any>();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
+  
   const { lookId } = route.params || {};
 
   const [lookData, setLookData] = useState<any>(null);
@@ -219,7 +224,7 @@ export default function LookDetailScreen() {
 
                 return (
                   <View style={styles.carouselItemWrapper}>
-                    <View style={[styles.itemCard, isSelected && styles.itemCardSelected]}>
+                    <View style={[styles.itemCard, isSelected && styles.itemCardSelected, { borderColor: isSelected ? themeColor : 'transparent' } ]}>
                       
                       <TouchableOpacity 
                         activeOpacity={0.8}
@@ -248,7 +253,7 @@ export default function LookDetailScreen() {
                           <Text style={styles.itemNameLink} numberOfLines={1}>
                             {item.name}
                           </Text>
-                          <ArrowUpRight size={14} color="#A67B5B" strokeWidth={2.5} />
+                          <ArrowUpRight size={14} color={themeColor} strokeWidth={2.5} />
                         </TouchableOpacity>
                       ) : (
                         <View style={styles.cardTextContainer}>

@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import { useTheme } from '../context/ThemeContext';
 
 const SEASONS = [
   { id: 'winter', label: 'Winter', image: require('../../assets/winter-icon.png'), bgColor: '#4A5568' },
@@ -22,6 +22,9 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0
 
 export default function CatalogueScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
   
   const [activeSeason, setActiveSeason] = useState('autumn');
   const [activeCategory, setActiveCategory] = useState('ALL'); 
@@ -33,8 +36,6 @@ export default function CatalogueScreen() {
   const [dynamicCategories, setDynamicCategories] = useState<string[]>(['ALL']);
   const [groupedProducts, setGroupedProducts] = useState<any[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
-
-  // console.log(`Downloaded ${allProducts.length} items. First item:`, allProducts[0]);
 
   useEffect(() => {
     const fetchAllProducts = async () => {
@@ -54,7 +55,7 @@ export default function CatalogueScreen() {
             .select('id, name, product_type, listing_image_url, image_urls, categories, seasons')
             .range(from, to)
             .order('created_at', { ascending: false })
-            .order('id', { ascending: true }); // 👈 FIX 1: Guarantees stable pagination order!
+            .order('id', { ascending: true }); 
 
           if (error) throw error;
 
@@ -72,8 +73,6 @@ export default function CatalogueScreen() {
         }
 
         const uniqueProducts = Array.from(new Map(allFetched.map(item => [item.id, item])).values());
-        
-        console.log(`✅ TOTAL CATALOG LOADED: ${uniqueProducts.length} items`);
         setAllProducts(uniqueProducts);
         
       } catch (err) {
@@ -177,7 +176,7 @@ export default function CatalogueScreen() {
               onPress={() => setActiveSeason(season.id)}
               activeOpacity={0.7}
             >
-              <View style={[styles.seasonIconOuterRing, isActive && styles.seasonIconOuterRingActive]}>
+              <View style={[styles.seasonIconOuterRing, isActive && styles.seasonIconOuterRingActive, { borderColor: isActive ? themeColor : 'transparent' }]}>
                 <View style={[styles.seasonIconInner, { backgroundColor: season.bgColor }]}>
                   <Image 
                     source={season.image} 
@@ -185,7 +184,9 @@ export default function CatalogueScreen() {
                   />
                 </View>
               </View>
-              <Text style={[styles.seasonLabel, isActive && styles.seasonLabelActive]}>
+              <Text style={[styles.seasonLabel, isActive && styles.seasonLabelActive,
+                  { color: isActive ? themeColor : '#666666' }
+              ]}>
                 {season.label}
               </Text>
             </TouchableOpacity>
@@ -199,11 +200,14 @@ export default function CatalogueScreen() {
           return (
             <TouchableOpacity 
               key={category} 
-              style={[styles.categoryPill, isActive && styles.categoryPillActive]}
+              style={[styles.categoryPill, isActive && styles.categoryPillActive, 
+              { backgroundColor: isActive ? themeColor : 'transparent', borderColor: themeColor }]}
               onPress={() => setActiveCategory(category)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{category}</Text>
+              <Text style={[styles.categoryText, isActive && styles.categoryTextActive,
+                { color: isActive ? '#FFF' : themeColor }
+              ]}>{category}</Text>
             </TouchableOpacity>
           );
         })}
@@ -237,7 +241,7 @@ export default function CatalogueScreen() {
         <Image source={{ uri: item.image }} style={styles.productImage} />
       </View>
       <View style={styles.productInfo}>
-        <Text style={styles.itemCount}>{item.count} ITEM{item.count !== 1 ? 'S' : ''}</Text>
+        <Text style={[styles.itemCount, { color: themeColor }]}>{item.count} ITEM{item.count !== 1 ? 'S' : ''}</Text>
         <Text style={styles.productTitle}>{item.title}</Text>
       </View>
       <View style={styles.chevronButton}>

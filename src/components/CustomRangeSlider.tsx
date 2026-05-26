@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { useTheme } from '../context/ThemeContext';
 
 interface CustomRangeSliderProps {
     absoluteMax: number;
@@ -17,6 +18,9 @@ export default function CustomRangeSlider({
     onMaxChange,
 }: CustomRangeSliderProps) {
     const [trackWidth, setTrackWidth] = useState(1);
+
+    const { currentTheme } = useTheme();
+    const themeColor = currentTheme?.color || '#A67B5B';
 
     const updateValues = (x: number) => {
         if (trackWidth === 0) return;
@@ -50,9 +54,9 @@ export default function CustomRangeSlider({
             onResponderMove={(e) => updateValues(e.nativeEvent.locationX)}
         >
             <View style={styles.sliderBackground} />
-            <View style={[styles.sliderActiveTrack, { left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }]} />
-            <View style={[styles.sliderThumb, { left: `${minPercent}%` }]} />
-            <View style={[styles.sliderThumb, { left: `${maxPercent}%` }]} />
+            <View style={[styles.sliderActiveTrack, { backgroundColor: themeColor }, { left: `${minPercent}%`, width: `${maxPercent - minPercent}%` }]} />
+            <View style={[styles.sliderThumb, { backgroundColor: themeColor, borderColor: themeColor },{ left: `${minPercent}%` }]} />
+            <View style={[styles.sliderThumb, { backgroundColor: themeColor, borderColor: themeColor }, { left: `${maxPercent}%` }]} />
         </View>
     );
 }
@@ -71,7 +75,6 @@ const styles = StyleSheet.create({
     sliderActiveTrack: {
         position: 'absolute',
         height: 2,
-        backgroundColor: '#A67B5B',
         pointerEvents: 'none'
     },
     sliderThumb: {
@@ -80,9 +83,7 @@ const styles = StyleSheet.create({
         width: 12,
         height: 12,
         borderRadius: 12,
-        backgroundColor: '#AA8368',
         borderWidth: 2,
-        borderColor: '#A67B5B',
         pointerEvents: 'none',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },

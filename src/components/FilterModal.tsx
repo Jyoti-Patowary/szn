@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomRangeSlider from './CustomRangeSlider';
+import { useTheme } from '../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -79,6 +80,9 @@ export default function FilterModal({
 
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
+    const { currentTheme } = useTheme();
+    const themeColor = currentTheme?.color || '#A67B5B';
+
     useEffect(() => {
         if (isVisible) {
             setLocalSort(sortOption);
@@ -148,8 +152,8 @@ export default function FilterModal({
                                             {opt.label}
                                         </Text>
 
-                                        <View style={[styles.radioCircle, isActive && styles.radioCircleActive]}>
-                                            {isActive && <View style={styles.radioInner} />}
+                                        <View style={[styles.radioCircle,{ borderColor: themeColor }]}>
+                                            {isActive && <View style={[styles.radioInner, { backgroundColor: themeColor }]} />}
                                         </View>
                                     </TouchableOpacity>
                                 );
@@ -168,7 +172,7 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.pill, localCategory === '' && styles.pillActive]}
+                                                style={[styles.pill, localCategory === '' && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                 onPress={() => setLocalCategory('')}
                                             >
                                                 <Text style={[styles.pillText, localCategory === '' && styles.pillTextActive]}>All</Text>
@@ -176,7 +180,7 @@ export default function FilterModal({
                                             {availableCategories.map((cat: string) => (
                                                 <TouchableOpacity
                                                     key={cat}
-                                                    style={[styles.pill, localCategory === cat && styles.pillActive]}
+                                                    style={[styles.pill, localCategory === cat && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                     onPress={() => setLocalCategory(localCategory === cat ? '' : cat)}
                                                 >
                                                     <Text style={[styles.pillText, localCategory === cat && styles.pillTextActive]}>{cat}</Text>
@@ -200,7 +204,7 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.colorSwatchWrapper, localColor === '' && styles.colorSwatchWrapperActive]}
+                                                style={[styles.colorSwatchWrapper, localColor === '' && { borderColor: themeColor }]}
                                                 onPress={() => setLocalColor('')}
                                             >
                                                 <View style={[styles.colorSwatch, { backgroundColor: '#EBE5DE', justifyContent: 'center', alignItems: 'center' }]}>
@@ -210,7 +214,7 @@ export default function FilterModal({
                                             {availableColors.map((col: string) => (
                                                 <TouchableOpacity
                                                     key={col}
-                                                    style={[styles.colorSwatchWrapper, localColor === col && styles.colorSwatchWrapperActive]}
+                                                    style={[styles.colorSwatchWrapper, localColor === col && { borderColor: themeColor }]}
                                                     onPress={() => setLocalColor(localColor === col ? '' : col)}
                                                 >
                                                     <View style={[styles.colorSwatch, { backgroundColor: col.toLowerCase() }]} />
@@ -234,7 +238,7 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.pill, localSeason === '' && styles.pillActive]}
+                                                style={[styles.pill, localSeason === '' && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                 onPress={() => setLocalSeason('')}
                                             >
                                                 <Text style={[styles.pillText, localSeason === '' && styles.pillTextActive]}>All</Text>
@@ -242,7 +246,7 @@ export default function FilterModal({
                                             {availableSeasons.map((season: string) => (
                                                 <TouchableOpacity
                                                     key={season}
-                                                    style={[styles.pill, localSeason === season && styles.pillActive]}
+                                                    style={[styles.pill, localSeason === season && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                     onPress={() => setLocalSeason(localSeason === season ? '' : season)}
                                                 >
                                                     <Text style={[styles.pillText, localSeason === season && styles.pillTextActive]}>{season}</Text>
@@ -266,7 +270,7 @@ export default function FilterModal({
                                     <View style={styles.expandedContent}>
                                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
                                             <TouchableOpacity
-                                                style={[styles.pill, localTag === '' && styles.pillActive]}
+                                                style={[styles.pill, localTag === '' && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                 onPress={() => setLocalTag('')}
                                             >
                                                 <Text style={[styles.pillText, localTag === '' && styles.pillTextActive]}>All</Text>
@@ -274,7 +278,7 @@ export default function FilterModal({
                                             {availableTags.map((tag: string) => (
                                                 <TouchableOpacity
                                                     key={tag}
-                                                    style={[styles.pill, localTag === tag && styles.pillActive]}
+                                                    style={[styles.pill, localTag === tag && { backgroundColor: themeColor, borderColor: themeColor }]}
                                                     onPress={() => setLocalTag(localTag === tag ? '' : tag)}
                                                 >
                                                     <Text style={[styles.pillText, localTag === tag && styles.pillTextActive]}>{tag}</Text>
@@ -307,10 +311,10 @@ export default function FilterModal({
                     </ScrollView>
 
                     <View style={styles.actionRow}>
-                        <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-                            <Text style={styles.resetBtnText}>Reset</Text>
+                        <TouchableOpacity style={[styles.resetBtn, { borderColor: themeColor }]} onPress={handleReset}>
+                            <Text style={[styles.resetBtnText, { color: themeColor }]}>Reset</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
+                        <TouchableOpacity style={[styles.applyBtn, { backgroundColor: themeColor }]} onPress={handleApply}>
                             <Text style={styles.applyBtnText}>Apply Filter</Text>
                         </TouchableOpacity>
                     </View>
@@ -332,9 +336,8 @@ const styles = StyleSheet.create({
     sortGroup: { marginBottom: 24 },
     radioRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
     radioLabel: { fontSize: 16, color: '#444' },
-    radioCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, borderColor: '#A67B5B', justifyContent: 'center', alignItems: 'center' },
-    radioCircleActive: { borderColor: '#A67B5B' },
-    radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#A67B5B' },
+    radioCircle: { width: 20, height: 20, borderRadius: 10, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+    radioInner: { width: 10, height: 10, borderRadius: 5, },
 
     filterGroup: { marginBottom: 30 },
     pillScroll: { flexDirection: 'row', marginHorizontal: -4 },
@@ -351,9 +354,9 @@ const styles = StyleSheet.create({
     priceText: { fontSize: 14, color: '#A6A6A6', fontWeight: '400', },
 
     actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-    resetBtn: { flex: 1, borderWidth: 1, borderColor: '#A67B5B', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginRight: 8 },
+    resetBtn: { flex: 1, borderWidth: 1, borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginRight: 8 },
     resetBtnText: { color: '#A67B5B', fontSize: 15, fontWeight: '600' },
-    applyBtn: { flex: 1, backgroundColor: '#A67B5B', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginLeft: 8 },
+    applyBtn: { flex: 1, borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginLeft: 8 },
     applyBtnText: { color: '#FFF', fontSize: 15, fontWeight: '600' },
 
     expandableRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

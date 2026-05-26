@@ -56,8 +56,8 @@ export default function ProfileScreen() {
   const SettingsRow = ({ icon: Icon, title, value, isDestructive, rightElement, onPress }: any) => (
     <TouchableOpacity style={styles.settingsRow} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.settingsRowLeft}>
-        <Icon size={20} color={isDestructive ? colors.error : colors.neutral700} strokeWidth={isDestructive ? 2 : 1.5} />
-        <Text style={[styles.settingsRowTitle, isDestructive && { color: colors.error }]}>
+        <Icon size={20} color={isDestructive ? currentTheme.color : colors.neutral700} strokeWidth={isDestructive ? 2 : 1.5} />
+        <Text style={[styles.settingsRowTitle, isDestructive && { color: currentTheme.color }]}>
           {title}
         </Text>
       </View>
@@ -198,7 +198,7 @@ export default function ProfileScreen() {
 
         {/* DELETE ACCOUNT */}
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={() => setDeleteModalVisible(true)}>
-          <Text style={styles.deleteAccountText}>DELETE MY ACCOUNT</Text>
+          <Text style={[styles.deleteAccountText, { color: currentTheme.color }]}>DELETE MY ACCOUNT</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />

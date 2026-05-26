@@ -3,9 +3,13 @@ import { TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useSavedItems } from '../context/SavedItemsContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function SaveButton({ itemId, type, style, size = 24 }: any) {
   const { savedProducts, savedLooks, setSavedProducts, setSavedLooks } = useSavedItems();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
 
   const isSaved = type === 'product' ? savedProducts.includes(itemId) : savedLooks.includes(itemId);
   const tableName = type === 'product' ? 'user_saved_products' : 'user_saved_looks';
@@ -52,7 +56,7 @@ export default function SaveButton({ itemId, type, style, size = 24 }: any) {
       <Ionicons 
         name={isSaved ? "heart" : "heart-outline"} 
         size={size} 
-        color={isSaved ? "#AA8368" : "#A67B5B"} 
+        color={themeColor}
       />
     </TouchableOpacity>
   );

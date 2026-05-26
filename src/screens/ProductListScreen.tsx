@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import FilterModal from '../components/FilterModal';
 import SaveButton from '../components/SaveButton';
 import { useSavedItems } from '../context/SavedItemsContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
@@ -20,6 +21,9 @@ const PAGE_SIZE = 20;
 export default function ProductListScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<any>();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
 
   const { savedProducts } = useSavedItems();
 
@@ -229,7 +233,7 @@ export default function ProductListScreen() {
             autoCorrect={false}
           />
         </View>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setIsFilterVisible(true)}>
+        <TouchableOpacity style={[styles.filterBtn, { backgroundColor: themeColor }]} onPress={() => setIsFilterVisible(true)}>
           <Ionicons name="options-outline" size={24} color="#FFF" />
         </TouchableOpacity>
       </View>
@@ -303,7 +307,7 @@ const styles = StyleSheet.create({
   searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#F6F4F0', borderWidth: 1, borderColor: '#DCD6CE', borderRadius: 14, paddingHorizontal: 12, height: 50, marginRight: 12 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 14, color: '#333' },
-  filterBtn: { width: 50, height: 50, backgroundColor: '#A67B5B', borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  filterBtn: { width: 50, height: 50, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   rowWrapper: { justifyContent: 'space-between', marginBottom: 24 },
   productCard: { width: '47%' },

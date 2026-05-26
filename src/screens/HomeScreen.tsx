@@ -28,6 +28,7 @@ export default function HomeScreen() {
 
   const { profile } = useUserProfile();
   const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
 
   const firstName = profile?.display_name ? profile.display_name.split(' ')[0] : '';
   const avatarUrl = profile?.avatar_url;
@@ -301,7 +302,7 @@ export default function HomeScreen() {
           {!isLoadingFeatured && featuredLooks.length > 0 && (
             <View style={styles.paginationContainer}>
               {featuredLooks.map((_, index) => (
-                <View key={index} style={[styles.dot, currentSlide === index && styles.activeDot]} />
+                <View key={index} style={[styles.dot, currentSlide === index && styles.activeDot, { backgroundColor: themeColor }]} />
               ))}
             </View>
           )}

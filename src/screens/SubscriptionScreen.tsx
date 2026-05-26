@@ -9,6 +9,7 @@ import { ArrowLeft, Calendar, X, TriangleAlert } from 'lucide-react-native';
 import CustomModal from '../components/CustomModal'; 
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 // import {
 //   initConnection,
 //   requestPurchase,
@@ -28,6 +29,9 @@ const SKU_ANNUAL = Platform.OS === 'ios' ? 'yourszn_annual' : 'yourszn_gp_annual
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setTimeLeft, setIsLocked } = useAppContext();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
   
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState('semi-annual');
@@ -154,12 +158,12 @@ export default function SubscriptionScreen() {
 
           <Text style={styles.sectionTitle}>CURRENT PLAN</Text>
           <View style={styles.currentPlanCard}>
-            <View style={styles.activeBadge}><Text style={styles.activeBadgeText}>ACTIVE</Text></View>
+            <View style={[styles.activeBadge, { backgroundColor: themeColor }]}><Text style={styles.activeBadgeText}>ACTIVE</Text></View>
             <Text style={styles.planTitle}>Autumn Plan 🍂</Text>
             <Text style={styles.planSubtitle}>Semi-Annual • $35.99 / 6 months</Text>
             <View style={styles.dateRow}>
-              <Calendar size={14} color="#A67B5B" strokeWidth={2} />
-              <Text style={styles.dateText}>Renews on: 12 Dec 2026</Text>
+              <Calendar size={14} color={themeColor} strokeWidth={2} />
+              <Text style={[styles.dateText, { color: themeColor }]}>Renews on: 12 Dec 2026</Text>
             </View>
             <View style={styles.currentPlanBtn}>
               <Text style={styles.currentPlanBtnText}>Current Plan</Text>
@@ -168,17 +172,19 @@ export default function SubscriptionScreen() {
 
           <View style={styles.planHeaderRow}>
             <Text style={styles.choosePlanText}>CHOOSE A PLAN</Text>
-            {isProcessing && <ActivityIndicator size="small" color="#A67B5B" />}
+            {isProcessing && <ActivityIndicator size="small" color={themeColor} />}
           </View>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'monthly' && styles.selectedPlanCard]} 
+            style={[styles.planOptionCard, selectedPlan === 'monthly' && styles.selectedPlanCard,
+              selectedPlan === 'monthly' && { borderColor: themeColor }
+            ]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('monthly', SKU_MONTHLY)}
           >
             <View style={styles.planOptionHeader}>
-              <Text style={[styles.planOptionLabel, selectedPlan === 'monthly' && { color: '#A67B5B' }]}>MONTHLY</Text>
-              <Text style={selectedPlan === 'monthly' ? styles.currentText : styles.switchText}>
+              <Text style={[styles.planOptionLabel, selectedPlan === 'monthly' && { color: themeColor }]}>MONTHLY</Text>
+              <Text style={[selectedPlan === 'monthly' ? styles.currentText : styles.switchText, { color: selectedPlan === 'monthly' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
                 {selectedPlan === 'monthly' ? 'CURRENT' : 'SWITCH'}
               </Text>
             </View>
@@ -190,14 +196,16 @@ export default function SubscriptionScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'semi-annual' && styles.selectedPlanCard]} 
+            style={[styles.planOptionCard, selectedPlan === 'semi-annual' && styles.selectedPlanCard,
+              selectedPlan === 'semi-annual' && { borderColor: themeColor }
+            ]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('semi-annual', SKU_SEMI_ANNUAL)}
           >
-            <View style={styles.mostPopularBadge}><Text style={styles.mostPopularText}>MOST POPULAR</Text></View>
+            <View style={[styles.mostPopularBadge, { backgroundColor: themeColor }]}><Text style={styles.mostPopularText}>MOST POPULAR</Text></View>
             <View style={styles.planOptionHeader}>
-              <Text style={[styles.planOptionLabel, selectedPlan === 'semi-annual' && { color: '#A67B5B' }]}>SEMI-ANNUAL</Text>
-              <Text style={selectedPlan === 'semi-annual' ? styles.currentText : styles.switchText}>
+              <Text style={[styles.planOptionLabel, selectedPlan === 'semi-annual' && { color: themeColor }]}>SEMI-ANNUAL</Text>
+              <Text style={[selectedPlan === 'semi-annual' ? styles.currentText : styles.switchText, { color: selectedPlan === 'semi-annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
                 {selectedPlan === 'semi-annual' ? 'CURRENT' : 'SWITCH'}
               </Text>
             </View>
@@ -209,14 +217,16 @@ export default function SubscriptionScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'annual' && styles.selectedPlanCard]} 
+            style={[styles.planOptionCard, selectedPlan === 'annual' && styles.selectedPlanCard,
+              selectedPlan === 'annual' && { borderColor: themeColor }
+            ]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('annual', SKU_ANNUAL)}
           >
             <View style={styles.bestValueBadge}><Text style={styles.bestValueText}>BEST VALUE</Text></View>
             <View style={styles.planOptionHeader}>
-              <Text style={[styles.planOptionLabel, selectedPlan === 'annual' && { color: '#A67B5B' }]}>ANNUAL</Text>
-              <Text style={selectedPlan === 'annual' ? styles.currentText : styles.upgradeText}>
+              <Text style={[styles.planOptionLabel, selectedPlan === 'annual' && { color: themeColor }]}>ANNUAL</Text>
+              <Text style={[selectedPlan === 'annual' ? styles.currentText : styles.upgradeText, { color: selectedPlan === 'annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]  }>
                 {selectedPlan === 'annual' ? 'CURRENT' : 'UPGRADE'}
               </Text>
             </View>

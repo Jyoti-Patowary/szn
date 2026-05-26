@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import SaveButton from '../components/SaveButton';
+import { useTheme } from '../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=400&auto=format&fit=crop';
@@ -14,6 +15,10 @@ const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1515886657613-9f3515b0
 export default function ProductDetailScreen() {
   const navigation = useNavigation();
   const route = useRoute<any>();
+
+  const { currentTheme } = useTheme();
+  const themeColor = currentTheme?.color || '#A67B5B';
+
   const { product } = route.params || {};
 
   const images = (product?.image_urls && product.image_urls.length > 0)
@@ -65,7 +70,7 @@ export default function ProductDetailScreen() {
   return (
     <View style={styles.container} {...mainPanResponder.panHandlers}>
 
-      <Image source={{ uri: images[activeImageIndex] }} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
+      <Image source={{ uri: images[activeImageIndex] }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
 
       <SafeAreaView style={styles.topNavContainer}>
         <View style={styles.topNavRow}>
@@ -83,7 +88,8 @@ export default function ProductDetailScreen() {
           {images.slice(0, 4).map((img: string, index: number) => {
             const isActive = index === activeImageIndex;
             return (
-              <TouchableOpacity key={index} style={[styles.thumbnailWrapper, isActive && styles.thumbnailActive]} onPress={() => setActiveImageIndex(index)}>
+              <TouchableOpacity key={index} style={[styles.thumbnailWrapper, isActive && styles.thumbnailActive]}
+               onPress={() => setActiveImageIndex(index)}>
                 <Image source={{ uri: img }} style={styles.thumbnailImage} />
               </TouchableOpacity>
             );
@@ -96,7 +102,6 @@ export default function ProductDetailScreen() {
         <Text style={styles.swipeUpText}>Swipe up for details</Text>
       </TouchableOpacity>
 
-      {/* PURE REACT NATIVE ABSOLUTE VIEW (Replaces Modal) */}
       {isDetailsVisible && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: 100 }]}>
           <View style={styles.modalOverlay}>
@@ -108,7 +113,7 @@ export default function ProductDetailScreen() {
                 <View style={styles.detailTextCol}>
                   <Text style={styles.brandText}>{brandName.toUpperCase()}</Text>
                   <Text style={styles.titleText}>{productTitle}</Text>
-                  <Text style={styles.priceText}>{productPrice}</Text>
+                  <Text style={[styles.priceText, { color: themeColor }]}>{productPrice}</Text>
                 </View>
                 <SaveButton 
                   itemId={product.id} 
@@ -121,13 +126,15 @@ export default function ProductDetailScreen() {
               <View style={styles.sizeSection}>
                 <View style={styles.sizeHeaderRow}>
                   <Text style={styles.sectionLabel}>Select Size</Text>
-                  <Text style={styles.sizeGuideText}>Size Guide</Text>
+                  <Text style={[styles.sizeGuideText, { color: themeColor }]}>Size Guide</Text>
                 </View>
                 <View style={styles.sizeOptionsRow}>
                   {['XS', 'S', 'M', 'L', 'XL'].map(size => {
                     const isSelected = selectedSize === size;
                     return (
-                      <TouchableOpacity key={size} style={[styles.sizeCircle, isSelected && styles.sizeCircleActive]} onPress={() => setSelectedSize(size)}>
+                      <TouchableOpacity key={size} style={[styles.sizeCircle, isSelected && styles.sizeCircleActive, 
+                          { backgroundColor: isSelected ? themeColor : '#EBE5DE' }
+                      ]} onPress={() => setSelectedSize(size)}>
                         <Text style={[styles.sizeText, isSelected && styles.sizeTextActive]}>{size}</Text>
                       </TouchableOpacity>
                     );
@@ -136,8 +143,8 @@ export default function ProductDetailScreen() {
               </View>
 
               <TouchableOpacity style={styles.shopNowBtn} onPress={() => product?.source_url && Linking.openURL(product.source_url)}>
-                <Text style={styles.shopNowText}>Shop Now</Text>
-                <Ionicons name="arrow-forward-outline" size={20} color="#A67B5B" style={{ transform: [{ rotate: '-45deg' }] }} />
+                <Text style={[styles.shopNowText, { color: themeColor }]}>Shop Now</Text>
+                <Ionicons name="arrow-forward-outline" size={20} color={themeColor} style={{ transform: [{ rotate: '-45deg' }] }} />
               </TouchableOpacity>
 
             </View>
@@ -145,7 +152,6 @@ export default function ProductDetailScreen() {
         </View>
       )}
 
-      {/* SHARE BOTTOM SHEET (Replaces Modal) */}
       {isShareVisible && (
         <View style={[StyleSheet.absoluteFill, { zIndex: 100, elevation: 100 }]}>
           <View style={styles.modalOverlay}>
@@ -186,7 +192,7 @@ export default function ProductDetailScreen() {
 
               <TextInput style={styles.shareInput} placeholder="Add a message (Optional)" placeholderTextColor="#999" />
 
-              <TouchableOpacity style={styles.sendBtn} onPress={() => setIsShareVisible(false)}>
+              <TouchableOpacity style={[styles.sendBtn, { backgroundColor: themeColor }]} onPress={() => setIsShareVisible(false)}>
                 <Text style={styles.sendBtnText}>Send</Text>
               </TouchableOpacity>
 
