@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -49,37 +49,39 @@ export default function AuthScreen() {
     setConfirmError('');
   };
 
-//   GoogleSignin.configure({
-//   webClientId: '458874391941-477qg71gavhhd0ad2mih34a96dsq15ko.apps.googleusercontent.com',
-//   });
+  useEffect(() => {
+  GoogleSignin.configure({
+  webClientId: '458874391941-477qg71gavhhd0ad2mih34a96dsq15ko.apps.googleusercontent.com',
+  });
+}, []);
 
-//   async function signInWithGoogleNative() {
-//   setLoading(true);
-//   try {
-//     await GoogleSignin.hasPlayServices();
-//     const userInfo = await GoogleSignin.signIn();
+  async function signInWithGoogleNative() {
+  setLoading(true);
+  try {
+    await GoogleSignin.hasPlayServices();
+    const userInfo = await GoogleSignin.signIn();
 
-//     const idToken = userInfo.data?.idToken || (userInfo as any).idToken;
+    const idToken = userInfo.data?.idToken || (userInfo as any).idToken;
 
-//     if (idToken) {
-//       const { error } = await supabase.auth.signInWithIdToken({
-//         provider: 'google',
-//         token: idToken,
-//       });
+    if (idToken) {
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken,
+      });
 
-//       if (error) throw error;
-//     } else {
-//       throw new Error('No ID token found.');
-//     }
-//   } catch (error: any) {
-//     console.error(error);
-//     if (error.code !== 'SIGN_IN_CANCELLED') {
-//       Alert.alert('Google Sign In Failed', error.message);
-//     }
-//   } finally {
-//     setLoading(false);
-//   }
-// }
+      if (error) throw error;
+    } else {
+      throw new Error('No ID token found.');
+    }
+  } catch (error: any) {
+    console.error(error);
+    if (error.code !== 'SIGN_IN_CANCELLED') {
+      Alert.alert('Google Sign In Failed', error.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
 
   async function signInWithAppleNative() {
   setLoading(true);
@@ -192,54 +194,54 @@ export default function AuthScreen() {
     }
   }
 
- async function signInWithSocial(provider: 'google' | 'apple') {
-    setLoading(true);
-    try {
-      const redirectUrl = Linking.createURL('');
+//  async function signInWithSocial(provider: 'google' | 'apple') {
+//     setLoading(true);
+//     try {
+//       const redirectUrl = Linking.createURL('');
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider,
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true, 
-          queryParams: provider === 'google' ? {
-            prompt: 'select_account', 
-          } : undefined,
-        },
-      });
+//       const { data, error } = await supabase.auth.signInWithOAuth({
+//         provider: provider,
+//         options: {
+//           redirectTo: redirectUrl,
+//           skipBrowserRedirect: true, 
+//           queryParams: provider === 'google' ? {
+//             prompt: 'select_account', 
+//           } : undefined,
+//         },
+//       });
 
-      if (error) throw error;
+//       if (error) throw error;
 
-      if (data?.url) {
-        const browserResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+//       if (data?.url) {
+//         const browserResult = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
         
-        if (browserResult.type === 'success') {
-          const url = browserResult.url;
+//         if (browserResult.type === 'success') {
+//           const url = browserResult.url;
           
-          const params = url.split('#')[1]?.split('&').reduce((acc, current) => {
-            const [key, value] = current.split('=');
-            acc[key] = decodeURIComponent(value);
-            return acc;
-          }, {} as Record<string, string>);
+//           const params = url.split('#')[1]?.split('&').reduce((acc, current) => {
+//             const [key, value] = current.split('=');
+//             acc[key] = decodeURIComponent(value);
+//             return acc;
+//           }, {} as Record<string, string>);
 
-          if (!params || !params.access_token || !params.refresh_token) {
-             throw new Error('Authentication tokens not found.');
-          }
+//           if (!params || !params.access_token || !params.refresh_token) {
+//              throw new Error('Authentication tokens not found.');
+//           }
 
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token: params.access_token,
-            refresh_token: params.refresh_token,
-          });
+//           const { error: sessionError } = await supabase.auth.setSession({
+//             access_token: params.access_token,
+//             refresh_token: params.refresh_token,
+//           });
 
-          if (sessionError) throw sessionError;
-        }
-      }
-    } catch (error: any) {
-      Alert.alert(`${provider === 'google' ? 'Google' : 'Apple'} Sign In Failed`, error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+//           if (sessionError) throw sessionError;
+//         }
+//       }
+//     } catch (error: any) {
+//       Alert.alert(`${provider === 'google' ? 'Google' : 'Apple'} Sign In Failed`, error.message);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }
 
   async function handleResetPassword() {
     clearErrors();
@@ -285,11 +287,11 @@ export default function AuthScreen() {
           <Text style={[styles.socialButtonText, { color: colors.white }]}>Continue with Apple</Text>
         </TouchableOpacity>
       )}
-{/* 
+
       <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.white }]} onPress={signInWithGoogleNative}
-        disabled={loading}>  */}
-      <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.white }]} onPress={() => signInWithSocial('google')}
-        disabled={loading}>
+        disabled={loading}> 
+      {/* <TouchableOpacity style={[styles.socialButton, { backgroundColor: colors.white }]} onPress={() => signInWithSocial('google')}
+        disabled={loading}> */}
         <Image 
           source={require('../../assets/Google-Logo.png')} 
           style={styles.socialImage} 

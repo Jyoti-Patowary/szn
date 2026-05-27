@@ -17,6 +17,7 @@ import {
   purchaseUpdatedListener,
   purchaseErrorListener,
   finishTransaction,
+  fetchProducts,
   Purchase,
   PurchaseError,
   ErrorCode
@@ -49,6 +50,8 @@ export default function SubscriptionScreen() {
   const purchaseUpdateSubscription = useRef<any>(null);
   const purchaseErrorSubscription = useRef<any>(null);
 
+  const [products, setProducts] = useState<any[]>([]);
+
   useEffect(() => {
     const fetchActivePlan = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -77,8 +80,19 @@ export default function SubscriptionScreen() {
     fetchActivePlan();
 
     initConnection()
-      .then((status) => {
+      .then(async (status) => {
         console.log("IAP Connection initialized status:", status);
+
+        try {
+          const skus = [SKU_MONTHLY, SKU_SEMI_ANNUAL, SKU_ANNUAL];
+  
+          const fetchedProducts = await fetchProducts({ skus });
+          
+          console.log("Fetched Store Products:", fetchedProducts);
+          setProducts(fetchedProducts || []);
+        } catch (fetchErr) {
+          console.warn("Could not fetch products:", fetchErr);
+        }
       })
       .catch((err) => {
         console.warn("Billing setup is pending on Play Console:", err.message);
@@ -144,13 +158,11 @@ export default function SubscriptionScreen() {
       (error: PurchaseError) => {
         setIsProcessing(false);
         if (error.code !== ErrorCode.UserCancelled) {
-
           if (error.code === ErrorCode.DeveloperError || error.message?.includes('Billing')) {
             Alert.alert("Store Setup Pending", "Google Play billing setup is currently being finalized by administration. Please check back shortly!");
           } else {
             Alert.alert("Payment Failed", "There was an issue processing your subscription.");
           }
-          
         }
       }
     );
@@ -161,6 +173,21 @@ export default function SubscriptionScreen() {
     };
   }, []);
 
+  // FIXED: Moved this outside of the useEffect so the JSX below can access it
+  const getLocalizedPrice = (sku: string, fallbackPrice: string) => {
+    const product = products.find(p => p.productId === sku);
+    if (!product) return fallbackPrice;
+
+    if (Platform.OS === 'ios') {
+      return product.localizedPrice;
+    } else {
+      try {
+        return product.subscriptionOfferDetails[0].pricingPhases.pricingPhaseList[0].formattedPrice;
+      } catch (e) {
+        return fallbackPrice;
+      }
+    }
+  };
 
   const handlePlanClick = async (planId: string, sku: string) => {
     setSelectedPlan(planId);
@@ -227,7 +254,7 @@ export default function SubscriptionScreen() {
               </Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceText}>$14.99</Text>
+              <Text style={styles.priceText}>{getLocalizedPrice(SKU_MONTHLY, '$14.99')}</Text>
               <Text style={styles.durationText}>/month</Text>
             </View>
             <Text style={styles.planDescription}>Flexible access to premium styling</Text>
@@ -246,7 +273,7 @@ export default function SubscriptionScreen() {
               </Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceText}>$35.99</Text>
+              <Text style={styles.priceText}>{getLocalizedPrice(SKU_SEMI_ANNUAL, '$35.99')}</Text>
               <Text style={styles.durationText}>/6 month</Text>
             </View>
             <Text style={styles.planDescription}>Save more with mid-term access</Text>
@@ -265,7 +292,7 @@ export default function SubscriptionScreen() {
               </Text>
             </View>
             <View style={styles.priceRow}>
-              <Text style={styles.priceText}>$99.99</Text>
+              <Text style={styles.priceText}>{getLocalizedPrice(SKU_ANNUAL, '$99.99')}</Text>
               <Text style={styles.durationText}>/year</Text>
             </View>
             <Text style={styles.planDescription}>Maximum savings + full access</Text>
