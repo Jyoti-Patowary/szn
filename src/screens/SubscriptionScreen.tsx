@@ -10,17 +10,17 @@ import CustomModal from '../components/CustomModal';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
-// import {
-//   initConnection,
-//   requestPurchase,
-//   purchaseUpdatedListener,
-//   purchaseErrorListener,
-//   finishTransaction,
-//   Purchase,
-//   PurchaseError,
-//   ErrorCode
-// } from 'react-native-iap';
 
+import {
+  initConnection,
+  requestPurchase,
+  purchaseUpdatedListener,
+  purchaseErrorListener,
+  finishTransaction,
+  Purchase,
+  PurchaseError,
+  ErrorCode
+} from 'react-native-iap';
 
 const SKU_MONTHLY = Platform.OS === 'ios' ? 'yourszn_monthly' : 'yourszn_gp_monthly';
 const SKU_SEMI_ANNUAL = Platform.OS === 'ios' ? 'yourszn_semi' : 'yourszn_gp_semi';
@@ -40,103 +40,149 @@ export default function SubscriptionScreen() {
   const themeColor = currentTheme?.color || '#A67B5B';
   
   const [isCancelModalVisible, setCancelModalVisible] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState('semi-annual');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const [activeTier, setActiveTier] = useState('semi-annual'); 
+  const [selectedPlan, setSelectedPlan] = useState('semi-annual');
+  const [renewalDate, setRenewalDate] = useState('12 Dec 2026');
 
   const purchaseUpdateSubscription = useRef<any>(null);
   const purchaseErrorSubscription = useRef<any>(null);
 
-  // useEffect(() => {
-  //   initConnection().catch(console.warn);
+  useEffect(() => {
+    const fetchActivePlan = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('user_subscriptions')
+          .select('tier, current_period_end')
+          .eq('user_id', user.id)
+          .single();
 
-  //   purchaseUpdateSubscription.current = purchaseUpdatedListener(
-  //     async (purchase: Purchase) => {
-  //       try {        
-  //         if (purchase.transactionId) {       
-  //           let tier = 'monthly';
-  //           if (purchase.productId === SKU_SEMI_ANNUAL) tier = 'semi-annual';
-  //           if (purchase.productId === SKU_ANNUAL) tier = 'annual';
+        if (data && data.tier) {
+          setActiveTier(data.tier);
+          setSelectedPlan(data.tier);
 
-  //           const { data: { user } } = await supabase.auth.getUser();
-  //           if (user) {
-  //             const now = new Date();
-  //             const endDate = new Date(now);
-  //             if (tier === 'monthly') endDate.setMonth(endDate.getMonth() + 1);
-  //             else if (tier === 'semi-annual') endDate.setMonth(endDate.getMonth() + 6);
-  //             else if (tier === 'annual') endDate.setFullYear(endDate.getFullYear() + 1);
+          const dateObj = new Date(data.current_period_end);
+          const formattedDate = dateObj.toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric'
+          });
+          setRenewalDate(formattedDate);
+        }
+      }
+    };
 
-  //             const providerName = Platform.OS === 'ios' ? 'apple' : 'google';
+    fetchActivePlan();
 
-  //             const { error } = await supabase
-  //               .from('user_subscriptions')
-  //               .upsert({ 
-  //                 user_id: user.id,
-  //                 customer_email: user.email,
-  //                 provider: providerName, 
-  //                 tier: tier,  
-  //                 status: 'active', 
-  //                 current_period_start: now.toISOString(),
-  //                 current_period_end: endDate.toISOString(),
-  //                 cancel_at_period_end: false
-  //               }, 
-  //               { onConflict: 'user_id' } 
-  //             );
+    initConnection()
+      .then((status) => {
+        console.log("IAP Connection initialized status:", status);
+      })
+      .catch((err) => {
+        console.warn("Billing setup is pending on Play Console:", err.message);
+      });
 
-  //             if (error) throw error;
-  //           }
+    purchaseUpdateSubscription.current = purchaseUpdatedListener(
+      async (purchase: Purchase) => {
+        try {        
+          if (purchase.transactionId) {       
+            let tier = 'monthly';
+            if (purchase.productId === SKU_SEMI_ANNUAL) tier = 'semi-annual';
+            if (purchase.productId === SKU_ANNUAL) tier = 'annual';
 
-  //           await finishTransaction({ purchase, isConsumable: false });
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              const now = new Date();
+              const endDate = new Date(now);
+              if (tier === 'monthly') endDate.setMonth(endDate.getMonth() + 1);
+              else if (tier === 'semi-annual') endDate.setMonth(endDate.getMonth() + 6);
+              else if (tier === 'annual') endDate.setFullYear(endDate.getFullYear() + 1);
 
-  //           await AsyncStorage.setItem('@is_subscribed', 'true');
-  //           setTimeLeft(0);
-  //           setIsLocked(false);
-  //           setIsProcessing(false);
+              const providerName = Platform.OS === 'ios' ? 'apple' : 'google';
 
-  //           Alert.alert(
-  //             "Purchase Successful", 
-  //             "Welcome to YourSZN Premium! Your app is now fully unlocked.",
-  //             [{ text: "Awesome!", onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }) }]
-  //           );
-  //         }
-  //       } catch (error: any) {
-  //         console.error("Database update error:", error);
-  //         setIsProcessing(false);
-  //       }
-  //     }
-  //   );
+              const { error } = await supabase
+                .from('user_subscriptions')
+                .upsert({ 
+                  user_id: user.id,
+                  customer_email: user.email,
+                  provider: providerName, 
+                  tier: tier,  
+                  status: 'active', 
+                  current_period_start: now.toISOString(),
+                  current_period_end: endDate.toISOString(),
+                  cancel_at_period_end: false
+                }, 
+                { onConflict: 'user_id' } 
+              );
 
-  //   purchaseErrorSubscription.current = purchaseErrorListener(
-  //     (error: PurchaseError) => {
-  //       setIsProcessing(false);
-  //       if (error.code !== ErrorCode.UserCancelled) {
-  //         Alert.alert("Payment Failed", "There was an issue processing your subscription.");
-  //       }
-  //     }
-  //   );
+              if (error) throw error;
+            }
 
-  //   return () => {
-  //     if (purchaseUpdateSubscription.current) purchaseUpdateSubscription.current.remove();
-  //     if (purchaseErrorSubscription.current) purchaseErrorSubscription.current.remove();
-  //   };
-  // }, []);
+            await finishTransaction({ purchase, isConsumable: false });
+
+            await AsyncStorage.setItem('@is_subscribed', 'true');
+            setTimeLeft(0);
+            setIsLocked(false);
+            setIsProcessing(false);
+
+            Alert.alert(
+              "Purchase Successful", 
+              "Welcome to YourSZN Premium! Your app is now fully unlocked.",
+              [{ text: "Awesome!", onPress: () => navigation.reset({ index: 0, routes: [{ name: 'Main' }] }) }]
+            );
+          }
+        } catch (error: any) {
+          console.error("Database update error:", error);
+          setIsProcessing(false);
+        }
+      }
+    );
+
+   purchaseErrorSubscription.current = purchaseErrorListener(
+      (error: PurchaseError) => {
+        setIsProcessing(false);
+        if (error.code !== ErrorCode.UserCancelled) {
+
+          if (error.code === ErrorCode.DeveloperError || error.message?.includes('Billing')) {
+            Alert.alert("Store Setup Pending", "Google Play billing setup is currently being finalized by administration. Please check back shortly!");
+          } else {
+            Alert.alert("Payment Failed", "There was an issue processing your subscription.");
+          }
+          
+        }
+      }
+    );
+
+    return () => {
+      if (purchaseUpdateSubscription.current) purchaseUpdateSubscription.current.remove();
+      if (purchaseErrorSubscription.current) purchaseErrorSubscription.current.remove();
+    };
+  }, []);
 
 
   const handlePlanClick = async (planId: string, sku: string) => {
     setSelectedPlan(planId);
-    setIsProcessing(true);
     
-    // try {
-    //   await requestPurchase({
-    //     request: Platform.OS === 'ios' 
-    //       ? { apple: { sku } } 
-    //       : { android: { skus: [sku] } },
-    //     type: 'subs'
-    //   });
-    // } catch (err: any) {
-    //   console.warn(err);
-    //   setIsProcessing(false);
-    // }
+    if (planId !== activeTier) {
+      setIsProcessing(true);
+      try {
+        await requestPurchase({
+          request: Platform.OS === 'ios' 
+            ? { apple: { sku } } 
+            : { android: { skus: [sku] } },
+          type: 'subs'
+        });
+      } catch (err: any) {
+        console.warn("Purchase request rejected by device/store:", err);
+        setIsProcessing(false);
+        Alert.alert("Unavailable", "This plan cannot be fetched right now. Store configurations are finishing up.");
+      }
+    }
   };
+
+  const currentPlanDetails = planConfigs[activeTier as keyof typeof planConfigs] || planConfigs['semi-annual'];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -153,11 +199,11 @@ export default function SubscriptionScreen() {
           <Text style={styles.sectionTitle}>CURRENT PLAN</Text>
           <View style={styles.currentPlanCard}>
             <View style={[styles.activeBadge, { backgroundColor: themeColor }]}><Text style={styles.activeBadgeText}>ACTIVE</Text></View>
-            <Text style={styles.planTitle}>Autumn Plan 🍂</Text>
-            <Text style={styles.planSubtitle}>Semi-Annual • $35.99 / 6 months</Text>
+            <Text style={styles.planTitle}>{currentTheme?.name ? `${currentTheme.name} ${currentPlanDetails.title} ${currentTheme.emoji}` : currentPlanDetails.title}</Text>
+            <Text style={styles.planSubtitle}>{currentPlanDetails.subtitle}</Text>
             <View style={styles.dateRow}>
               <Calendar size={14} color={themeColor} strokeWidth={2} />
-              <Text style={[styles.dateText, { color: themeColor }]}>Renews on: 12 Dec 2026</Text>
+              <Text style={[styles.dateText, { color: themeColor }]}>Renews on: {renewalDate}</Text>
             </View>
             <View style={styles.currentPlanBtn}>
               <Text style={styles.currentPlanBtnText}>Current Plan</Text>
@@ -170,16 +216,14 @@ export default function SubscriptionScreen() {
           </View>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'monthly' && styles.selectedPlanCard,
-              selectedPlan === 'monthly' && { borderColor: themeColor }
-            ]} 
+            style={[styles.planOptionCard, selectedPlan === 'monthly' && styles.selectedPlanCard, selectedPlan === 'monthly' && { borderColor: themeColor }]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('monthly', SKU_MONTHLY)}
           >
             <View style={styles.planOptionHeader}>
               <Text style={[styles.planOptionLabel, selectedPlan === 'monthly' && { color: themeColor }]}>MONTHLY</Text>
-              <Text style={[selectedPlan === 'monthly' ? styles.currentText : styles.switchText, { color: selectedPlan === 'monthly' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
-                {selectedPlan === 'monthly' ? 'CURRENT' : 'SWITCH'}
+              <Text style={[activeTier === 'monthly' ? styles.currentText : styles.switchText, { color: activeTier === 'monthly' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
+                {activeTier === 'monthly' ? 'CURRENT' : 'SWITCH'}
               </Text>
             </View>
             <View style={styles.priceRow}>
@@ -190,17 +234,15 @@ export default function SubscriptionScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'semi-annual' && styles.selectedPlanCard,
-              selectedPlan === 'semi-annual' && { borderColor: themeColor }
-            ]} 
+            style={[styles.planOptionCard, selectedPlan === 'semi-annual' && styles.selectedPlanCard, selectedPlan === 'semi-annual' && { borderColor: themeColor }]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('semi-annual', SKU_SEMI_ANNUAL)}
           >
             <View style={[styles.mostPopularBadge, { backgroundColor: themeColor }]}><Text style={styles.mostPopularText}>MOST POPULAR</Text></View>
             <View style={styles.planOptionHeader}>
               <Text style={[styles.planOptionLabel, selectedPlan === 'semi-annual' && { color: themeColor }]}>SEMI-ANNUAL</Text>
-              <Text style={[selectedPlan === 'semi-annual' ? styles.currentText : styles.switchText, { color: selectedPlan === 'semi-annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
-                {selectedPlan === 'semi-annual' ? 'CURRENT' : 'SWITCH'}
+              <Text style={[activeTier === 'semi-annual' ? styles.currentText : styles.switchText, { color: activeTier === 'semi-annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]}>
+                {activeTier === 'semi-annual' ? 'CURRENT' : 'SWITCH'}
               </Text>
             </View>
             <View style={styles.priceRow}>
@@ -211,17 +253,15 @@ export default function SubscriptionScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.planOptionCard, selectedPlan === 'annual' && styles.selectedPlanCard,
-              selectedPlan === 'annual' && { borderColor: themeColor }
-            ]} 
+            style={[styles.planOptionCard, selectedPlan === 'annual' && styles.selectedPlanCard, selectedPlan === 'annual' && { borderColor: themeColor }]} 
             activeOpacity={0.7}
             onPress={() => handlePlanClick('annual', SKU_ANNUAL)}
           >
             <View style={styles.bestValueBadge}><Text style={styles.bestValueText}>BEST VALUE</Text></View>
             <View style={styles.planOptionHeader}>
               <Text style={[styles.planOptionLabel, selectedPlan === 'annual' && { color: themeColor }]}>ANNUAL</Text>
-              <Text style={[selectedPlan === 'annual' ? styles.currentText : styles.upgradeText, { color: selectedPlan === 'annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]  }>
-                {selectedPlan === 'annual' ? 'CURRENT' : 'UPGRADE'}
+              <Text style={[activeTier === 'annual' ? styles.currentText : styles.upgradeText, { color: activeTier === 'annual' ? themeColor : 'rgba(170, 131, 104, 1)' }]  }>
+                {activeTier === 'annual' ? 'CURRENT' : 'UPGRADE'}
               </Text>
             </View>
             <View style={styles.priceRow}>
@@ -247,7 +287,7 @@ export default function SubscriptionScreen() {
         <Text style={styles.modalTitle}>Cancel Subscription?</Text>
         <Text style={styles.modalBody}>
           You will lose your curated seasonal styling access and exclusive benefits after{' '}
-          <Text style={styles.modalBodyBold}>12 Dec 2026</Text>.
+          <Text style={styles.modalBodyBold}>{renewalDate}</Text>.
         </Text>
         <TouchableOpacity style={styles.keepPlanBtn} activeOpacity={0.8} onPress={() => setCancelModalVisible(false)}>
           <Text style={styles.keepPlanBtnText}>Keep Plan</Text>
