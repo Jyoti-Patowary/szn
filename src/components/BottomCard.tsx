@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     borderRadius: 40,
     paddingVertical: 17,
-    marginHorizontal: 24,
+    marginHorizontal: 15,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',

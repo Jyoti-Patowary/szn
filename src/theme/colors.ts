@@ -1,10 +1,10 @@
 export const colors = {
-  background: '#F1E9E0',
+  background: '#F1E6DB',
   surface: '#FFFFFF',
-  primary: '#764D36', // Brownish
+  primary: '#AA8368', // Brownish
   textDark: '#1E1E1E',
-  textLight: '#757575',
-  border: '#E0E0E0',
+  textLight: '#6B6B6B',
+  border: '#6B6B6B',
   accent: '#B095D2', // Purple icon
 };
 

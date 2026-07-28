@@ -1,43 +1,47 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Image, Animated, Dimensions } from 'react-native';
 import { colors } from '../theme/colors';
+import { useAppContext } from '../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
-// The colors for our 4 mini icons
-const ICON_COLORS = ['#4A4A4A', '#A67B5B', '#6DA4EE', '#B49CE5'];
+const SEASON_ICONS = [
+  require('../../assets/winter-icon.png'),
+  require('../../assets/autumn-icon.png'),
+  require('../../assets/summer-icon.png'),
+  require('../../assets/spring-icon.png'),
+];
 
 export default function SplashScreen({ navigation }: any) {
   const [showSznLogo, setShowSznLogo] = useState(false);
 
-  // 1. Create an array of 4 Animated Values, initialized to 0
-  const iconAnimations = useRef(ICON_COLORS.map(() => new Animated.Value(0))).current;
+  const iconAnimations = useRef(SEASON_ICONS.map(() => new Animated.Value(0))).current;
+
+  const { isLocked } = useAppContext();
 
   useEffect(() => {
     const logoTimer = setTimeout(() => setShowSznLogo(true), 1200);
-    const navigationTimer = setTimeout(() => navigation.replace('Main'), 3800); // Increased slightly to let the animation finish
+    const navigationTimer = setTimeout(() => navigation.replace('Auth'), 3800); 
 
     return () => {
       clearTimeout(logoTimer);
       clearTimeout(navigationTimer);
     };
-  }, [navigation]);
+  }, [navigation, isLocked]);
 
   useEffect(() => {
-    // 2. When the SZN logo is allowed to show, trigger the animation
     if (showSznLogo) {
       const animations = iconAnimations.map((anim) =>
         Animated.timing(anim, {
           toValue: 1,
-          duration: 500, // Half a second per icon
+          duration: 500, 
           useNativeDriver: true,
         })
       );
 
-      // Animated.stagger starts each animation 150ms after the previous one
       Animated.stagger(150, animations).start();
     }
-  }, [showSznLogo]); // Run this effect when showSznLogo changes
+  }, [showSznLogo]); 
 
   return (
     <View style={styles.container}>
@@ -52,26 +56,25 @@ export default function SplashScreen({ navigation }: any) {
       ) : (
         <View style={styles.logoLayoutContainer}>
           
-          {/* Left Column: The 4 Stacked Icons (Now Animated) */}
           <View style={styles.stackedIconsColumn}>
-            {ICON_COLORS.map((color, index) => {
-              // Interpolate the animated value (0 to 1) into a physical distance
-              // Starts at 100 pixels to the right (towards middle), ends at 0 (left position)
+
+            {SEASON_ICONS.map((iconSource, index) => {
+    
               const translateX = iconAnimations[index].interpolate({
                 inputRange: [0, 1],
                 outputRange: [100, 0], 
               });
 
-              // Fade in as it moves
               const opacity = iconAnimations[index];
 
               return (
-                <Animated.View 
+  
+                <Animated.Image 
                   key={index}
+                  source={iconSource} 
+                  resizeMode="contain"
                   style={[
                     styles.miniIcon, 
-                    { backgroundColor: color },
-                    // 3. Apply the animated styles here
                     { opacity: opacity, transform: [{ translateX }] }
                   ]} 
                 />
@@ -79,7 +82,6 @@ export default function SplashScreen({ navigation }: any) {
             })}
           </View>
 
-          {/* Right Column: The Typography */}
           <View style={styles.textColumn}>
             <Text style={styles.textYour}>Your</Text>
             <Text style={styles.textSZN}>SZN</Text>
@@ -123,9 +125,9 @@ const styles = StyleSheet.create({
     height: 160, 
   },
   miniIcon: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
+    width: 60,
+    height: 60,
+    marginBottom: 10,
   },
   textColumn: {
     flexDirection: 'column',
